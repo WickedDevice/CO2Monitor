@@ -4,9 +4,11 @@ boolean attemptSmartConfig(void) {
   int time = SMARTCONFIG_WAIT;
   while (time > 0) {
     //wait for 7 seconds for user to select smartconfig
-    if(time % 1000) {
+    if(!(time % 100)) {
       Serial.print(F("Push button for Smart Config. "));
-      Serial.println((time / 1000) + 1);
+      Serial.print((time / 1000));
+      Serial.print('.');
+      Serial.println((time % 1000) / 100);
     }
     
     if (!digitalRead(BUTTON)) {
@@ -110,8 +112,8 @@ boolean attemptSmartConfigCreate(void){
 
 
 /////////////////////
-////// Printing
-////////////////////
+///// Printing //////
+/////////////////////
 
 void mactoa(uint8_t ip[], char *string) {
   //Mac address to ascii

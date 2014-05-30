@@ -36,8 +36,8 @@ uint32_t ip;
 WildFire_CC3000_Client client;
 
 char address[13] = "";//Mac address
-int experiment_id, time_or_CO2, CO2_cutoff, time_cutoff;
-int experimentStart = 0, millisOffset = 0;
+int experiment_id, CO2_cutoff;
+long experimentStart = 0, millisOffset = 0;
 
 ///Used for CO2 sensor
 byte readCO2[] = { 0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25 }; //Command packet to read Co2 (see app note)
@@ -109,25 +109,21 @@ void loop(void) {
   switch (state) {
     case no_experiment: {
       //Queries the server to see if there is an experiment
-      Serial.println(F("SHOULD BE: Checking for experiment\nPush button to start anyway."));
+      Serial.println(F("Checking for experiment\nPush button to start anyway."));
 
       experiment_id = 0;
       if(!digitalRead(BUTTON)) {
         //Button pushed
-        experimentStart = 0;
+        experimentStart = 0L;
         millisOffset = millis();
         experiment_id = -1;
       } else {
-        checkForExperiment(experiment_id, time_or_CO2, CO2_cutoff, time_cutoff);
+        checkForExperiment(experiment_id, CO2_cutoff);
       }
       
       if(experiment_id != 0) {
         state = recording;
       }
-      
-      //Silly stub:
-      
-      state = recording;
       
       break;
     }

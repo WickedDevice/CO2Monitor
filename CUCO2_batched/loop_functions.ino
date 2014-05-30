@@ -1,17 +1,25 @@
 #include <WildFire_CC3000.h>
+int mostRecentDataAvg(int numToAverage);
 
-int experimentSeconds() {
-  return (millis()-millisOffset)/1000 + experimentStart;
+
+long int experimentSeconds() {
+  return (millis()-millisOffset)/1000L + experimentStart;
 }
 
-int kludgeForEnd = 5;
+
+boolean justStarted = true;
 boolean experimentEnded() {
   //Logic for deciding whether an experiment has ended goes here...
-  kludgeForEnd --;
-  if(kludgeForEnd <= 0 || outOfSpace()) {
+  
+  int newAverage = mostRecentDataAvg(5);
+  
+  justStarted = CO2_cutoff <= newAverage ? false : justStarted;
+  
+  if(CO2_cutoff > newAverage && !justStarted) {
     return true;
+  } else {
+    return false;
   }
-  return false;  
 }
 
 
@@ -19,63 +27,66 @@ boolean sendPacket(void) {
   //Creates and sends a packet of data to the server containing CO2 results and timestamps
   Serial.println(F("Sending data..."));
   
-  //Assembling packet.
-  
   client = cc3000.connectTCP(ip, LISTEN_PORT);
 
+    //Assembling packet.
     int datalength = 0;
     char data[DATA_MAX_LENGTH] = "\n";
-    strcat_P(data, PSTR("{\"sensor_datum\": {\"ppm\": ["));
+    strcat_P(data, PSTR("{\"sensor_datum\": {\"ppm\": {"));
     
     char ppm[10] = "";
     char timestamp[10] = "";
-    for(int i=0; i<PACKET_SIZE; i++) {
-      if(hasMoreData()) {
-        int tmp_ppm, tmp_timestamp;
-        nextDatum(tmp_ppm, tmp_timestamp);
-        itoa(tmp_ppm,ppm,10);
-        itoa(tmp_timestamp,timestamp,10);
-        
-        strcat_P(data, PSTR("{\""));
-        strcat(data, timestamp);
-        strcat_P(data, PSTR("\":\""));
-        strcat(data, ppm);
-        strcat_P(data, PSTR("\"},"));
-      } else {
-        break;
-      }
-    }    
+    
+    int dataInPacket;
+    for(dataInPacket=0; dataInPacket<PACKET_SIZE && hasMoreData(); dataInPacket++) {
+      long tmp_ppm, tmp_timestamp;
+      nextDatum(tmp_ppm, tmp_timestamp);
+      
+      ltoa(tmp_ppm,ppm,10);
+      ltoa(tmp_timestamp,timestamp,10);
+      
+      strcat_P(data, PSTR("\""));
+      strcat(data, timestamp);
+      strcat_P(data, PSTR("\":\""));
+      strcat(data, ppm);
+      strcat_P(data, PSTR("\","));
+    }
     data[strlen(data)-1] = '\0'; //Removing trailing comma
           //(will fail on packets with no data, which shouldn't be a problem)
     
-    strcat_P(data, PSTR("], \"device_address\": \""));
+    strcat_P(data, PSTR("}, \"device_address\": \""));
     strcat(data, address);
+    
+    strcat_P(data, PSTR("\", \"experiment_id\": \""));
+    char experiment_string[10];
+    itoa(experiment_id, experiment_string, 10);
+    strcat(data,experiment_string);
+    
     strcat_P(data,PSTR("\"}}"));
 
-    Serial.print("Outgoing data: "); Serial.println(data);
+    //Serial.print("Outgoing data: "); Serial.println(data);
 
     datalength = strlen(data);
 
-    Serial.print("Data length : ");
-    Serial.println(datalength);
+    //Serial.print("Data length : ");
+    //Serial.println(datalength);
 //    Serial.println();
     wdt_reset();
-    // Send request
    
-    char putstr_buffer[64] = "POST /sensor_data";
+    //Assembling header
+    char putstr_buffer[64] = "POST /sensor_data/batch_create/";
+    strcat(putstr_buffer,address);
     strcat_P(putstr_buffer, PSTR(".json HTTP/1.1"));
-   
-    char contentlen_buffer[64] = "";
-    char len_buffer[32] = "";
-    itoa(datalength, len_buffer, 10);
-    strcat(contentlen_buffer, len_buffer);
 
+    makePacketHeader(putstr_buffer, datalength);
+    strcat(packet_buffer, data);
+    
+    
     wdt_reset();
     if (client.connected()) {
-//      Serial.println("Client connected!");
-      makePacketHeader(putstr_buffer, datalength);
+      //Send packet
       
-      strcat(packet_buffer, data);
+//      Serial.println("Client connected!");
 
       wdt_reset();
       client.println(packet_buffer);
@@ -87,23 +98,25 @@ boolean sendPacket(void) {
       
       delay(100); //SHOULD this be here?
       
+      return true;
     } else {
-      prevDataNotSent(PACKET_SIZE);
+      //Otherwise, retry with the same data.
+      prevDataNotSent(dataInPacket);
+        
       Serial.println(F("Connection failed"));
       return false;
     }
-
-
-  
-  return true;
 }
 
-void checkForExperiment(int &experiment_id, int &time_or_CO2, int &CO2_cutoff, int &time_cutoff) {
+void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
+  Serial.println(F("Connecting to server...\nIf this is the first time, it may take a while"));
+  wdt_reset();
   client = cc3000.connectTCP(ip, LISTEN_PORT);
-  
+  Serial.println(F("Connected"));
   int datalength = 0;
   char data[512] = "";
   
+  //Sending request
   char putstr_buffer[64] = "GET /first_contact/";
   strcat(putstr_buffer, address);
   strcat_P(putstr_buffer, PSTR(".html HTTP/1.1"));
@@ -112,6 +125,7 @@ void checkForExperiment(int &experiment_id, int &time_or_CO2, int &CO2_cutoff, i
   strcat(packet_buffer, data);
   client.println(packet_buffer);
   
+  ///Receiving reply
   wdt_reset();
   
   char serverReply[512] = "";
@@ -124,7 +138,6 @@ void checkForExperiment(int &experiment_id, int &time_or_CO2, int &CO2_cutoff, i
       serverReply[i] = (char)client.read();
       i++;
       serverReply[i] = '\0';
-      Serial.print(serverReply[i-1]);
       if(i >= 5 && !strcmp("start", serverReply+i-5)) {
         break;
       }
@@ -134,7 +147,6 @@ void checkForExperiment(int &experiment_id, int &time_or_CO2, int &CO2_cutoff, i
     if(i >= 5 && !strcmp("start", serverReply+i-5)) {
       break;
     }
-    Serial.print(".");
   }
   
   //Reading the body
@@ -143,7 +155,6 @@ void checkForExperiment(int &experiment_id, int &time_or_CO2, int &CO2_cutoff, i
     if(client.available()) {
       wdt_reset();
       serverReply[i] = (char)client.read();
-      Serial.print((int) serverReply[i]);
       i++;
     } else {
       //delay(50);
@@ -153,7 +164,6 @@ void checkForExperiment(int &experiment_id, int &time_or_CO2, int &CO2_cutoff, i
       i -= 3;
       break;
     }
-    Serial.print("-");
   }
   serverReply[i] = '\0';
   
@@ -163,12 +173,29 @@ void checkForExperiment(int &experiment_id, int &time_or_CO2, int &CO2_cutoff, i
   Serial.println(serverReply);
   
   
-  int time = atoi(serverReply);
-  if(time != 0) {
+  //Extracting information from the reply
+  long int time;
+  int experiment_id_tmp, CO2_cutoff_tmp;
+  int varsRead = sscanf(serverReply, "%ld %*s %d %*s %d", &time, &experiment_id_tmp, &CO2_cutoff_tmp);
+  if(varsRead >= 1) {
     millisOffset = millis();
     experimentStart = time;
   }
+  
+  if(varsRead >= 2) {
+    experiment_id = experiment_id_tmp;
+  }
 
+  if(varsRead >= 3) {
+    CO2_cutoff = CO2_cutoff_tmp;
+  } else {
+    CO2_cutoff = 2000;
+  }
+
+
+  Serial.print("Time: ");Serial.println(time);
+  Serial.print("Experiment id: "); Serial.println(experiment_id_tmp);
+  Serial.print("CO2 cutoff: "); Serial.println(CO2_cutoff_tmp);
   
   client.close();
   
@@ -200,7 +227,7 @@ char *makePacketHeader(char *request_type_and_location, int datalength) {
 #define SAVE_SPACE 500
 int savePtr = 0;
 int sentPtr = 0;
-int savedData[SAVE_SPACE*2];
+long int savedData[SAVE_SPACE*2];
 boolean saveDatum(unsigned long valCO2) {
   //Saves data to array, eeprom, or memory
   //right now just prints it out
@@ -225,7 +252,18 @@ boolean hasMoreData(void) {
   return (savePtr > sentPtr ? true : false);
 }
 
-void nextDatum(int &ppm, int &timestamp) {
+
+int mostRecentDataAvg(int numToAverage = 5) {
+  numToAverage = numToAverage > savePtr ? savePtr : numToAverage;
+  int sum = 0;
+  for(int i = 0; i < numToAverage; i++) {
+    sum += savedData[(savePtr-i)*2];
+  }
+  
+  return sum / numToAverage;
+}
+
+void nextDatum(long &ppm, long &timestamp) {
   //Returns a ppm, timestamp tuple
   ppm = savedData[sentPtr*2];
   timestamp = savedData[sentPtr*2+1];
@@ -238,9 +276,9 @@ void prevDataNotSent(int amt) {
   return;
 }
 
-//////////////////////
-//CO2 sensor functions
-//////////////////////
+//////////////////////////////
+//// CO2 sensor functions ////
+//////////////////////////////
 
 boolean sendRequest(byte packet[]) {
   int time = 0;
