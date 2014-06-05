@@ -74,12 +74,14 @@ boolean attemptSmartConfigReconnect(void){
 boolean attemptSmartConfigCreate(void){
   /* Initialise the module, deleting any existing profile data (which */
   /* is the default behaviour)  */
+  wdt_reset();
   Serial.println(F("\nInitialising the CC3000 ..."));
   if (!cc3000.begin(false))
   {
     return false;
   }  
-  
+  wdt_reset();
+  wdt_disable();
   /* Try to use the smart config app (no AES encryption), saving */
   /* the connection details if we succeed */
   Serial.println(F("Waiting for a SmartConfig connection (~60s) ..."));
@@ -88,7 +90,8 @@ boolean attemptSmartConfigCreate(void){
     Serial.println(F("SmartConfig failed"));
     return false;
   }
-  
+  wdt_enable(WDTO_8S);
+  wdt_reset();
   Serial.println(F("Saved connection details and connected to AP!"));
   
   int time = 0;

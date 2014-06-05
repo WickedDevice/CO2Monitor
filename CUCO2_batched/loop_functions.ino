@@ -62,6 +62,13 @@ boolean sendPacket(void) {
     itoa(experiment_id, experiment_string, 10);
     strcat(data,experiment_string);
     
+    strcat_P(data, PSTR("\", \"experiment_ended\": \""));
+    if(experimentEnded()) {
+      strcat_P(data, PSTR("true"));
+    } else {
+      strcat_P(data, PSTR("false"));
+    }
+    
     strcat_P(data,PSTR("\"}}"));
 
     //Serial.print("Outgoing data: "); Serial.println(data);
@@ -123,6 +130,8 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   makePacketHeader(putstr_buffer, datalength);
   
   strcat(packet_buffer, data);
+  Serial.println(F("Sending request"));
+  wdt_reset();
   client.println(packet_buffer);
   
   ///Receiving reply
@@ -130,10 +139,13 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   
   char serverReply[512] = "";
   
+  Serial.println(F("Getting Server reply"));
+  
   //Ignoring the header:
   int i = 0;
   while(client.connected() && i < 511) {
     while(client.available()) {
+      Serial.print('.');
       wdt_reset();
       serverReply[i] = (char)client.read();
       i++;
@@ -148,10 +160,11 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
       break;
     }
   }
-  
+  Serial.print(' ');
   //Reading the body
   i=0;
   while(client.connected() && i < 511){
+    Serial.print('.');
     if(client.available()) {
       wdt_reset();
       serverReply[i] = (char)client.read();
@@ -167,7 +180,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   }
   serverReply[i] = '\0';
   
-  Serial.println("Packet to server:");
+  Serial.println("\nPacket to server:");
   Serial.println(packet_buffer);
   Serial.println("ServerReply:");
   Serial.println(serverReply);

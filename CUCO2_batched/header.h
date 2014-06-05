@@ -5,12 +5,20 @@ WildFire wf(WILDFIRE_V2);
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
 //IP address of the server:
-#define HOST "192.168.1.2"
-#define IP_0 192
-#define IP_1 168
-#define IP_2 1
-#define IP_3 2
-#define LISTEN_PORT           3000    // What TCP port to listen on for connections.
+#define HOST "107.170.187.156"
+#define IP_0 107
+#define IP_1 170
+#define IP_2 187
+#define IP_3 156
+
+/*
+#define HOST "162.243.18.121"
+#define IP_0 162
+#define IP_1 243
+#define IP_2 18
+#define IP_3 121
+*/
+#define LISTEN_PORT           80    // What TCP port to listen on for connections.
 
 #define K_30_Serial Serial1
 

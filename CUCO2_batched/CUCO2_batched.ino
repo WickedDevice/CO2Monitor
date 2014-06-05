@@ -57,7 +57,7 @@ void setup(void)
   pinMode(BUTTON, INPUT_PULLUP);
   
   Serial.begin(115200);
-  K_30_Serial.begin(9600); //is this value correct?
+  K_30_Serial.begin(9600);
   Serial.println(F("Welcome to WildFire!\n"));  
   
   if(attemptSmartConfig()) {
@@ -65,7 +65,7 @@ void setup(void)
     while(!attemptSmartConfigCreate()){
       Serial.println(F("Waiting for Smart Config Create"));
     }
-    
+
   } else {
     Serial.println(F("Attempting to reconnect"));
     wdt_reset();
@@ -142,7 +142,7 @@ void loop(void) {
       saveDatum(valCO2);
       
       Serial.println("Recording data... Push button to force upload.");
-      if(!digitalRead(BUTTON) || experimentEnded()) {
+      if(!digitalRead(BUTTON) || experimentEnded() || outOfSpace()) {
         Serial.println("Data collection stopped");
         
         state = uploading;
