@@ -1,5 +1,5 @@
 
-WildFire wf(WILDFIRE_V2);
+WildFire wf;
 
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
@@ -35,4 +35,7 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
 #define BUTTON 5                    //Pin that the button is attached to
                                     //Note: Button is pushed when low
 
-WildFire_CC3000 cc3000(WILDFIRE_V2); // you can change this clock speed
+WildFire_CC3000 cc3000;
+
+//If defined, prints out a bunch of timing related debuggery
+#define INSTRUMENTED

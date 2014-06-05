@@ -1,4 +1,20 @@
 
+#ifdef INSTRUMENTED
+int millisSinceLastSmaller = 0;
+
+inline void resetSmallTimeDiff(void) {
+  millisSinceLastSmaller = millis();
+}
+
+inline int printTimeDiffSmall(const __FlashStringHelper *label) {
+  Serial.print("\t\t");
+  Serial.print(label);
+  Serial.println(millis() - millisSinceLastSmaller);
+  resetSmallTimeDiff();
+}
+
+#endif
+
 //Returns whether the user has requested smart config
 boolean attemptSmartConfig(void) {
   int time = SMARTCONFIG_WAIT;
@@ -45,13 +61,20 @@ boolean attemptSmartConfigReconnect(void){
   /* !!! Note the additional arguments in .begin that tell the   !!! */
   /* !!! app NOT to deleted previously stored connection details !!! */
   /* !!! and reconnected using the connection details in memory! !!! */
-  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */  
+  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+#ifdef INSTRUMENTED
+  resetSmallTimeDiff();
+#endif
+
   if (!cc3000.begin(false, true))
   {
     Serial.println(F("Unable to re-connect!? Did you run the SmartConfigCreate"));
     Serial.println(F("sketch to store your connection details?"));
     return false;
   }
+#ifdef INSTRUMENTED
+  printTimeDiffSmall(F("Reconnected: "));
+#endif
 
   /* Round of applause! */
   Serial.println(F("Reconnected!"));
@@ -67,7 +90,12 @@ boolean attemptSmartConfigReconnect(void){
       Serial.println(F("DHCP failed!"));
       return false;
     }
-  }  
+  }
+  
+#ifdef INSTRUMENTED
+  printTimeDiffSmall(F("DHCP: "));
+#endif
+
   return true;
 }
 
@@ -79,7 +107,7 @@ boolean attemptSmartConfigCreate(void){
   if (!cc3000.begin(false))
   {
     return false;
-  }  
+  }
   wdt_reset();
   wdt_disable();
   /* Try to use the smart config app (no AES encryption), saving */

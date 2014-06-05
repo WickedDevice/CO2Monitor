@@ -3,7 +3,6 @@
      Currently treats device as always active
      Continuously posts to server without waiting for response
  ****************************************************/
-
 #include <WildFire_CC3000.h>
 #include <SPI.h>
 #include <avr/wdt.h>
@@ -51,17 +50,23 @@ State state = error;
 
 void setup(void)
 {
+  Serial.begin(115200);
+#ifdef INSTRUMENTED
+  Serial.println(F("wdt disabled"));
+  printTimeDiff(F("Millis: "));
+#else
   wdt_enable(WDTO_8S);
+#endif
   
   wf.begin();
   pinMode(BUTTON, INPUT_PULLUP);
   
-  Serial.begin(115200);
+  
   K_30_Serial.begin(9600);
   Serial.println(F("Welcome to WildFire!\n"));  
   
   if(attemptSmartConfig()) {
-
+    
     while(!attemptSmartConfigCreate()){
       Serial.println(F("Waiting for Smart Config Create"));
     }
@@ -76,9 +81,17 @@ void setup(void)
     }
     
   }
-  
+
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Smart Config: "));
+#endif
+
   while(!displayConnectionDetails());
-  
+
+#ifdef INSTRUMENTED
+  printTimeDiff(F("displayConnectionDetails:"));
+#endif
+
   // Get the website IP & print it
   ip = IP_3;
   ip |= (((uint32_t) IP_2) << 8);
@@ -89,6 +102,10 @@ void setup(void)
   cc3000.printIPdotsRev(ip);
   Serial1.begin(9600);
   
+#ifdef INSTRUMENTED
+  printTimeDiff(F("printIPdotsRev: "));
+#endif
+
   //Finding Mac address
   uint8_t mac[6] = "";
   if(!cc3000.getMacAddress(mac)) {
@@ -96,7 +113,9 @@ void setup(void)
   }
   mactoa(mac,address);
   
-  
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Found mac address: "));
+#endif
   
   Serial.println(F("\nSHOULD check for cached data."));
   state = no_experiment;
@@ -104,6 +123,10 @@ void setup(void)
 
 
 void loop(void) {
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Reached top of loop: "));
+#endif
+
   wdt_reset();
   
   switch (state) {
@@ -138,9 +161,12 @@ void loop(void) {
       unsigned long valCO2 = getValue(response);
       
       //Later this will probably check to see if the datavalue has changed,
-      //  Or have a better delay.
       saveDatum(valCO2);
       
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Read Data: "));
+#endif
+
       Serial.println("Recording data... Push button to force upload.");
       if(!digitalRead(BUTTON) || experimentEnded() || outOfSpace()) {
         Serial.println("Data collection stopped");
@@ -155,7 +181,6 @@ void loop(void) {
     }
     
     case uploading: {
-      //Implement doing something here...
       
       if(!hasMoreData()) {
         state = done;
@@ -180,6 +205,9 @@ void loop(void) {
       if(cc3000.checkConnected()) {
         cc3000.disconnect();
       }
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Disconnected: "));
+#endif
       delay(1000);
       state = no_experiment;
       break;

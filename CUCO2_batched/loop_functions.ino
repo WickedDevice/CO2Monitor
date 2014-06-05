@@ -2,6 +2,17 @@
 int mostRecentDataAvg(int numToAverage);
 
 
+#ifdef INSTRUMENTED
+int millisSinceLast = 0;
+inline int printTimeDiff(const __FlashStringHelper *label) {
+  Serial.print('\t');
+  Serial.print(label);
+  Serial.println(millis() - millisSinceLast);
+  millisSinceLast = millis();
+}
+#endif
+
+
 long int experimentSeconds() {
   return (millis()-millisOffset)/1000L + experimentStart;
 }
@@ -28,6 +39,10 @@ boolean sendPacket(void) {
   Serial.println(F("Sending data..."));
   
   client = cc3000.connectTCP(ip, LISTEN_PORT);
+  
+#ifdef INSTRUMENTED
+  printTimeDiff(F("TCP connection established: "));
+#endif
 
     //Assembling packet.
     int datalength = 0;
@@ -87,22 +102,33 @@ boolean sendPacket(void) {
 
     makePacketHeader(putstr_buffer, datalength);
     strcat(packet_buffer, data);
-    
+
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Packet assembled: "));
+#endif
     
     wdt_reset();
     if (client.connected()) {
       //Send packet
-      
-//      Serial.println("Client connected!");
+#ifdef INSTRUMENTED
+  printTimeDiff(F("client.connected: "));
+#endif
 
       wdt_reset();
-      client.println(packet_buffer);
-      
+      client.fastrprintln(packet_buffer);
+
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Packet sent: "));
+#endif
+
       Serial.println("Outgoing request: ");
       Serial.println(packet_buffer);
       Serial.println();
       client.close();
       
+#ifdef INSTRUMENTED
+  printTimeDiff(F("client closed: "));
+#endif
       delay(100); //SHOULD this be here?
       
       return true;
@@ -123,6 +149,10 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   int datalength = 0;
   char data[512] = "";
   
+#ifdef INSTRUMENTED
+  printTimeDiff(F("TCP connection established: "));
+#endif
+  
   //Sending request
   char putstr_buffer[64] = "GET /first_contact/";
   strcat(putstr_buffer, address);
@@ -132,8 +162,17 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   strcat(packet_buffer, data);
   Serial.println(F("Sending request"));
   wdt_reset();
-  client.println(packet_buffer);
   
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Request constructed: "));
+#endif
+  
+  client.fastrprintln(packet_buffer);
+
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Request sent: "));
+#endif
+
   ///Receiving reply
   wdt_reset();
   
@@ -160,6 +199,11 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
       break;
     }
   }
+
+#ifdef INSTRUMENTED
+  printTimeDiff(F("\nHeader received: "));
+#endif
+
   Serial.print(' ');
   //Reading the body
   i=0;
@@ -179,7 +223,11 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
     }
   }
   serverReply[i] = '\0';
-  
+
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Body receivced: "));
+#endif
+
   Serial.println("\nPacket to server:");
   Serial.println(packet_buffer);
   Serial.println("ServerReply:");
@@ -205,13 +253,20 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
     CO2_cutoff = 2000;
   }
 
+#ifdef INSTRUMENTED
+  printTimeDiff(F("Body parsed: "));
+#endif
 
   Serial.print("Time: ");Serial.println(time);
   Serial.print("Experiment id: "); Serial.println(experiment_id_tmp);
   Serial.print("CO2 cutoff: "); Serial.println(CO2_cutoff_tmp);
   
   client.close();
-  
+
+#ifdef INSTRUMENTED
+  printTimeDiff(F("client closed: "));
+#endif
+
   delay(100); //SHOULD this be here?
   
   
