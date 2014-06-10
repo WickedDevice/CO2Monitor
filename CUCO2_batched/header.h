@@ -24,6 +24,8 @@ WildFire wf;
 
 #define PACKET_SIZE 50                          //Number of datapoints in a packet
                                                    // Don't make this too big or the Wildfire won't have space for it
+                                                   // This shouldn't cause packets to exceed TX_BUFFER_SIZE for the CC3000
+                                                   
 #define DATA_MAX_LENGTH (PACKET_SIZE * 35 + 150) //Maximum length of the data string to submit in the packet
                                                    // <35 for each datapoint, 150 for metadata
 char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
@@ -37,5 +39,8 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
 
 WildFire_CC3000 cc3000;
 
-//If defined, prints out a bunch of timing related debuggery
-#define INSTRUMENTED
+//If defined, prints out a bunch of timing related debuggery & disables the watchdog timer
+//#define INSTRUMENTED
+
+//If this is defined, the device attempts to send realtime data as it is collected
+//#define REALTIME_UPLOAD

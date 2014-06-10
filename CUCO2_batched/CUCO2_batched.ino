@@ -38,6 +38,9 @@ char address[13] = "";//Mac address
 int experiment_id, CO2_cutoff;
 long experimentStart = 0, millisOffset = 0;
 
+#define MAX_UPDATE_SPEED 2000 //Read the sensor at most this often
+unsigned long loopTime = 0;
+
 ///Used for CO2 sensor
 byte readCO2[] = { 0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25 }; //Command packet to read Co2 (see app note)
 byte response[] = { 0, 0, 0, 0, 0, 0, 0 }; //create an array to store the response
@@ -63,7 +66,7 @@ void setup(void)
   
   
   K_30_Serial.begin(9600);
-  Serial.println(F("Welcome to WildFire!\n"));  
+  Serial.println(F("Welcome to WildFire!\n"));
   
   if(attemptSmartConfig()) {
     
@@ -152,6 +155,12 @@ void loop(void) {
     }
     
     case recording: {
+
+      if(millis() - loopTime < MAX_UPDATE_SPEED) {
+        //If we read data in the past MAX_UPDATE_SPEED
+        delay(MAX_UPDATE_SPEED + loopTime - millis());
+      }
+      
       if(!sendRequest(readCO2)) {
         Serial.println(F("Check sensor connection"));
         state = error;
@@ -167,6 +176,13 @@ void loop(void) {
   printTimeDiff(F("Read Data: "));
 #endif
 
+
+      loopTime = millis();
+
+#ifdef REALTIME_UPLOAD
+      state = uploading;
+#endif
+
       Serial.println("Recording data... Push button to force upload.");
       if(!digitalRead(BUTTON) || experimentEnded() || outOfSpace()) {
         Serial.println("Data collection stopped");
@@ -174,16 +190,17 @@ void loop(void) {
         state = uploading;
         break;
       }
-      
-      delay(2000);
-      
       break;
     }
     
     case uploading: {
       
       if(!hasMoreData()) {
-        state = done;
+        if(experimentEnded() || outOfSpace() ) {
+          state = done; 
+        } else {
+          state = no_experiment; // If someone pushed the button, it will stop recording anyway
+        }
         break;
       }
 
@@ -202,15 +219,20 @@ void loop(void) {
     case done: {
       wdt_reset();
       Serial.println(F("Experiment complete. Have a nice day."));
-      if(cc3000.checkConnected()) {
-        cc3000.disconnect();
+      if(client.connected()) {
+        client.close();
+        delay(1000); //Need to wait 2 seconds before reconnecting to client
       }
 #ifdef INSTRUMENTED
   printTimeDiff(F("Disconnected: "));
 #endif
       delay(1000);
+      
+      soft_reset(); //Good because it resets RAM. (future, better memory implementations will just continue)
+      /*
       state = no_experiment;
       break;
+      */
     }
     
     default: {
