@@ -9,7 +9,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <WildFire.h>
-#include <EEPROM.h>
 
 #include "header.h"
 
@@ -56,6 +55,7 @@ void setup(void)
 {
   Serial.begin(115200);
   Serial.println(F("Programmed on " __DATE__ ", " __TIME__));
+  
 #ifdef INSTRUMENTED
   Serial.println(F("wdt disabled"));
   printTimeDiff(F("Millis: "));
@@ -122,8 +122,19 @@ void setup(void)
   printTimeDiff(F("Found mac address: "));
 #endif
   
-  Serial.println(F("\nSHOULD check for cached data."));
   state = no_experiment;
+  
+  if(!validMemory()) {
+    Serial.println(F("EEPROM has incorrect data"));
+    clearData();
+  } else if(hasMoreData()) {
+    Serial.println(F("Attempting to upload old data"));
+    experiment_id = getExperimentId();
+    state = uploading;
+  } else {
+    clearData();
+  }
+  
 } /////end setup /////
 
 
@@ -151,6 +162,7 @@ void loop(void) {
       
       if(experiment_id != 0) {
         state = recording;
+        setExperimentId(experiment_id);
       }
       
       break;

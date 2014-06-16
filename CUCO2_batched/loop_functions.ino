@@ -58,10 +58,10 @@ boolean sendPacket(void) {
     
     int dataInPacket;
     for(dataInPacket=0; dataInPacket<PACKET_SIZE && hasMoreData(); dataInPacket++) {
-      long tmp_ppm, tmp_timestamp;
+      int tmp_ppm; long tmp_timestamp;
       nextDatum(tmp_ppm, tmp_timestamp);
       
-      ltoa(tmp_ppm,ppm,10);
+      itoa(tmp_ppm,ppm,10);
       ltoa(tmp_timestamp,timestamp,10);
       
       strcat_P(data, PSTR("\""));
