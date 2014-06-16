@@ -6,6 +6,9 @@ inline void resetSmallTimeDiff(void) {
   millisSinceLastSmaller = millis();
 }
 
+/* prints out the number of milliseconds between now and when printTimeDiffSmall was last called 
+  Similar to printTimeDiff. 
+*/
 inline int printTimeDiffSmall(const __FlashStringHelper *label) {
   Serial.print("\t\t");
   Serial.print(label);
@@ -39,6 +42,7 @@ boolean attemptSmartConfig(void) {
   
   return false;
 }
+
 
 bool displayConnectionDetails(void) {
   uint32_t addr, netmask, gateway, dhcpserv, dnsserv;
@@ -128,7 +132,7 @@ boolean attemptSmartConfigCreate(void){
   Serial.println(F("Request DHCP"));
   while (!cc3000.checkDHCP()) 
   {
-    delay(100); // ToDo: Insert a DHCP timeout!
+    delay(100);
     time += 100;
     wdt_reset();
     if (time > 20000) {

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <WildFire.h>
+#include <EEPROM.h>
 
 #include "header.h"
 
@@ -54,6 +55,7 @@ State state = error;
 void setup(void)
 {
   Serial.begin(115200);
+  Serial.println(F("Programmed on " __DATE__ ", " __TIME__));
 #ifdef INSTRUMENTED
   Serial.println(F("wdt disabled"));
   printTimeDiff(F("Millis: "));
@@ -122,7 +124,7 @@ void setup(void)
   
   Serial.println(F("\nSHOULD check for cached data."));
   state = no_experiment;
-}
+} /////end setup /////
 
 
 void loop(void) {
@@ -152,12 +154,12 @@ void loop(void) {
       }
       
       break;
-    }
+    }//////end no_experiment ///////
     
     case recording: {
 
       if(millis() - loopTime < MAX_UPDATE_SPEED) {
-        //If we read data in the past MAX_UPDATE_SPEED
+        //If we read data in the past MAX_UPDATE_SPEED, delay
         delay(MAX_UPDATE_SPEED + loopTime - millis());
       }
       
@@ -170,6 +172,8 @@ void loop(void) {
       unsigned long valCO2 = getValue(response);
       
       //Later this will probably check to see if the datavalue has changed,
+      Serial.print(F("Recording data... CO2 ppm is: "));
+      Serial.println(valCO2);
       saveDatum(valCO2);
       
 #ifdef INSTRUMENTED
@@ -184,14 +188,18 @@ void loop(void) {
 #endif
 
       Serial.println("Recording data... Push button to force upload.");
-      if(!digitalRead(BUTTON) || experimentEnded() || outOfSpace()) {
-        Serial.println("Data collection stopped");
-        
+      if(!digitalRead(BUTTON)) {
+        Serial.println(F("Interrupted recording early."));
         state = uploading;
-        break;
+      } else if(experimentEnded()) {
+        Serial.println(F("Experiment finished."));
+        state = uploading;
+      } else if(outOfSpace()) {
+        Serial.println(F("Out of Memory."));
+        state = uploading;
       }
       break;
-    }
+    }/////end recording /////
     
     case uploading: {
       
@@ -209,35 +217,38 @@ void loop(void) {
       }
       
       break;
-    }
+    }//End uploading
     
     case error: {
       delay(1000);
       break;
-    }
+    }/////end error /////
     
     case done: {
       wdt_reset();
-      Serial.println(F("Experiment complete. Have a nice day."));
+      Serial.print(F("Experiment complete."));
+      
+      //Client should have been closed in SendPacket
+      /*
       if(client.connected()) {
+        Serial.println(F("\nClosing client"));
         client.close();
         delay(1000); //Need to wait 2 seconds before reconnecting to client
       }
 #ifdef INSTRUMENTED
   printTimeDiff(F("Disconnected: "));
 #endif
-      delay(1000);
+      */
       
-      soft_reset(); //Good because it resets RAM. (future, better memory implementations will just continue)
-      /*
+      experimentCleanup();
+      Serial.println(F(" Have a nice day."));
       state = no_experiment;
       break;
-      */
-    }
+    }/////end done //////
     
     default: {
       Serial.println("Error: Undefined state!");
     }
   }
   return;
-}
+} /////end loop /////

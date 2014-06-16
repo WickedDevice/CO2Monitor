@@ -3,7 +3,8 @@ int mostRecentDataAvg(int numToAverage);
 
 
 #ifdef INSTRUMENTED
-int millisSinceLast = 0;
+int millisSinceLast = 0; //Number of milliseconds since the last time printTimeDiff was called
+/* Prints the number of milliseconds that went by between this and the last time it was called */
 inline int printTimeDiff(const __FlashStringHelper *label) {
   Serial.print('\t');
   Serial.print(label);
@@ -12,19 +13,21 @@ inline int printTimeDiff(const __FlashStringHelper *label) {
 }
 #endif
 
-
+/* The number of seconds between now and the start of the experiment */
 long int experimentSeconds() {
   return (millis()-millisOffset)/1000L + experimentStart;
 }
 
 
-boolean justStarted = true;
+boolean justStarted = true; //Whether, during the experiment, the CO2 ppm has risen above the CO2_cutoff threshold
+/* Returns whether the experiment has ended or not
+    Currently determines this by checking to see if the CO2 ppm has risen past a threshold and fallen back down below it.
+ */
 boolean experimentEnded() {
-  //Logic for deciding whether an experiment has ended goes here...
   
   int newAverage = mostRecentDataAvg(5);
   
-  justStarted = CO2_cutoff <= newAverage ? false : justStarted;
+  justStarted = (CO2_cutoff <= newAverage) ? false : justStarted;
   
   if(CO2_cutoff > newAverage && !justStarted) {
     return true;
@@ -34,6 +37,7 @@ boolean experimentEnded() {
 }
 
 
+/* Contacts the server and sends a single packet of data collected. */
 boolean sendPacket(void) {
   //Creates and sends a packet of data to the server containing CO2 results and timestamps
   Serial.println(F("Sending data..."));
@@ -118,12 +122,12 @@ boolean sendPacket(void) {
       client.fastrprintln(packet_buffer);
 
 #ifdef INSTRUMENTED
-  printTimeDiff(F("Packet sent: "));
-#endif
-
+      printTimeDiff(F("Packet sent: "));
       Serial.println("Outgoing request: ");
       Serial.println(packet_buffer);
       Serial.println();
+ #endif
+ 
       client.close();
       
 #ifdef INSTRUMENTED
@@ -141,6 +145,7 @@ boolean sendPacket(void) {
     }
 }
 
+/* Contacts the server, checks to see if there is an experiment, */
 void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   Serial.println(F("Connecting to server...\nIf this is the first time, it may take a while"));
   wdt_reset();
@@ -184,7 +189,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   int i = 0;
   while(client.connected() && i < 511) {
     while(client.available()) {
-      Serial.print('.');
+      Serial.print('*');
       wdt_reset();
       serverReply[i] = (char)client.read();
       i++;
@@ -204,7 +209,6 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   printTimeDiff(F("\nHeader received: "));
 #endif
 
-  Serial.print(' ');
   //Reading the body
   i=0;
   while(client.connected() && i < 511){
@@ -226,13 +230,11 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
 
 #ifdef INSTRUMENTED
   printTimeDiff(F("Body receivced: "));
-#endif
-
   Serial.println("\nPacket to server:");
   Serial.println(packet_buffer);
   Serial.println("ServerReply:");
   Serial.println(serverReply);
-  
+#endif
   
   //Extracting information from the reply
   long int time;
@@ -258,8 +260,8 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
 #endif
 
   Serial.print("Time: ");Serial.println(time);
-  Serial.print("Experiment id: "); Serial.println(experiment_id_tmp);
-  Serial.print("CO2 cutoff: "); Serial.println(CO2_cutoff_tmp);
+  Serial.print("Experiment id: "); Serial.println(experiment_id);
+  Serial.print("CO2 cutoff: "); Serial.println(CO2_cutoff);
   
   client.close();
 
@@ -273,6 +275,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   return;
 }
 
+/* Constructs a packet header at the start of packet_buffer (which it returns) */
 char *makePacketHeader(char *request_type_and_location, int datalength) {
   char len_buffer[32] = "";
   itoa(datalength, len_buffer, 10);
@@ -286,63 +289,11 @@ char *makePacketHeader(char *request_type_and_location, int datalength) {
   
 }
 
-/////////////////////////////////
-////// Memory Management ////////
-/////////////////////////////////
-
-// This is using a very simple version of memory management, just using an array
-// In the future, it will probably save to EEPROM
-#define SAVE_SPACE 500
-int savePtr = 0;
-int sentPtr = 0;
-long int savedData[SAVE_SPACE*2];
-boolean saveDatum(unsigned long valCO2) {
-  //Saves data to array, eeprom, or memory
-  //right now just prints it out
-  if(outOfSpace()) {
-    return false;
-  }
-  
-  savedData[savePtr*2] = valCO2;
-  savedData[savePtr*2+1] = experimentSeconds();
-  savePtr++;
-  Serial.print(F("Recording data... CO2 ppm is: "));
-  Serial.println(valCO2);
-  return true;
+void experimentCleanup() {
+  justStarted = true;
+  clearData();
 }
 
-boolean outOfSpace(void) {
-  return savePtr >= SAVE_SPACE;
-}
-
-boolean hasMoreData(void) {
-  //Determines whether there are more data to send
-  return (savePtr > sentPtr ? true : false);
-}
-
-
-int mostRecentDataAvg(int numToAverage = 5) {
-  numToAverage = numToAverage > savePtr ? savePtr : numToAverage;
-  int sum = 0;
-  for(int i = 0; i < numToAverage; i++) {
-    sum += savedData[(savePtr-i)*2];
-  }
-  
-  return sum / numToAverage;
-}
-
-void nextDatum(long &ppm, long &timestamp) {
-  //Returns a ppm, timestamp tuple
-  ppm = savedData[sentPtr*2];
-  timestamp = savedData[sentPtr*2+1];
-  sentPtr++;
-  return;
-}
-
-void prevDataNotSent(int amt) {
-  sentPtr -= amt;
-  return;
-}
 
 //////////////////////////////
 //// CO2 sensor functions ////
