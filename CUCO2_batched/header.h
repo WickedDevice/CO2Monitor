@@ -1,6 +1,4 @@
 
-WildFire wf;
-
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
@@ -37,7 +35,8 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
 #define BUTTON 5                    //Pin that the button is attached to
                                     //Note: Button is pushed when low
 
-WildFire_CC3000 cc3000;
+LiquidCrystal lcd(A1, A2, A3, A4, A5, A6); //Pins attached to the LCD display.
+//  http://arduino.cc/en/Tutorial/LiquidCrystal
 
 //If defined, prints out a bunch of timing related debuggery & disables the watchdog timer
 //#define INSTRUMENTED

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <WildFire.h>
+#include <LiquidCrystal.h>
 
 #include "header.h"
 
@@ -32,7 +33,9 @@ void wdt_init(void)
 }
 
 uint32_t ip;
+WildFire_CC3000 cc3000;
 WildFire_CC3000_Client client;
+WildFire wf;
 
 char address[13] = "";//Mac address
 int experiment_id, CO2_cutoff;
@@ -55,7 +58,7 @@ void setup(void)
 {
   Serial.begin(115200);
   Serial.println(F("Programmed on " __DATE__ ", " __TIME__));
-  
+  lcd.begin(16,2);
 #ifdef INSTRUMENTED
   Serial.println(F("wdt disabled"));
   printTimeDiff(F("Millis: "));
@@ -68,7 +71,7 @@ void setup(void)
   
   
   K_30_Serial.begin(9600);
-  Serial.println(F("Welcome to WildFire!\n"));
+  //lcd_print_top("Began WildFire");
   
   if(attemptSmartConfig()) {
     
@@ -78,9 +81,12 @@ void setup(void)
 
   } else {
     Serial.println(F("Attempting to reconnect"));
+    lcd_print_top("Reconnecting...");
+    
     wdt_reset();
     if(!attemptSmartConfigReconnect()){
       Serial.println(F("Reconnect failed!"));
+      lcd_print_top("Reconnect failed");
       cc3000.disconnect();
       soft_reset();
     }
@@ -115,6 +121,7 @@ void setup(void)
   uint8_t mac[6] = "";
   if(!cc3000.getMacAddress(mac)) {
     Serial.println(F("Error: unable to get mac address"));
+    lcd_print_top("Error:No MACaddr");
   }
   mactoa(mac,address);
   
@@ -126,9 +133,11 @@ void setup(void)
   
   if(!validMemory()) {
     Serial.println(F("EEPROM has incorrect data"));
+    lcd_print_top("Invalid records..."); lcd_print_bottom("Clearing data");
     clearData();
   } else if(hasMoreData()) {
     Serial.println(F("Attempting to upload old data"));
+    lcd_print_top("Uploading data"); lcd_print_bottom("from last reboot");
     experiment_id = getExperimentId();
     state = uploading;
   } else {
@@ -150,6 +159,9 @@ void loop(void) {
       //Queries the server to see if there is an experiment
       Serial.println(F("Checking for experiment\nPush button to start anyway."));
 
+      lcd_print_top("Querying server");
+      lcd_print_bottom("Hold to skip");
+
       experiment_id = 0;
       if(!digitalRead(BUTTON)) {
         //Button pushed
@@ -163,6 +175,20 @@ void loop(void) {
       if(experiment_id != 0) {
         state = recording;
         setExperimentId(experiment_id);
+      } else {
+        lcd_print_top("No experiment"); lcd_print_bottom("found");
+        
+        //Leave the message up for a second
+        int time = 0;
+        for(time = 0; time < 10; time++) {
+          delay(100);
+          if(!digitalRead(BUTTON)) {
+            experimentStart = 0L;
+            millisOffset = millis();
+            experiment_id = -1;
+            break;
+          }
+        }
       }
       
       break;
@@ -176,6 +202,8 @@ void loop(void) {
       }
       
       if(!sendRequest(readCO2)) {
+        lcd_print_top("Check sensor");
+        lcd_print_bottom("connection");
         Serial.println(F("Check sensor connection"));
         state = error;
         break;
@@ -183,9 +211,11 @@ void loop(void) {
       
       unsigned long valCO2 = getValue(response);
       
-      //Later this will probably check to see if the datavalue has changed,
+      lcd_print_top("CO2 ppm: "); lcd.print(valCO2);
+      
       Serial.print(F("Recording data... CO2 ppm is: "));
       Serial.println(valCO2);
+      
       saveDatum(valCO2);
       
 #ifdef INSTRUMENTED
@@ -198,15 +228,18 @@ void loop(void) {
 #ifdef REALTIME_UPLOAD
       state = uploading;
 #endif
-
+      lcd_print_bottom("Hold to upload");
       Serial.println("Recording data... Push button to force upload.");
-      if(!digitalRead(BUTTON)) {
+      if(!digitalRead(BUTTON) && hasMoreData()) {
+        lcd_print_top("Button pushed");
         Serial.println(F("Interrupted recording early."));
         state = uploading;
       } else if(experimentEnded()) {
+        lcd_print_top("Experiment ended");
         Serial.println(F("Experiment finished."));
         state = uploading;
       } else if(outOfSpace()) {
+        lcd_print_top("Out of memory");
         Serial.println(F("Out of Memory."));
         state = uploading;
       }
@@ -238,7 +271,10 @@ void loop(void) {
     
     case done: {
       wdt_reset();
+      
       Serial.print(F("Experiment complete."));
+      
+      lcd_print_top("Experiment");lcd_print_bottom("complete");
       
       //Client should have been closed in SendPacket
       /*
@@ -255,6 +291,8 @@ void loop(void) {
       experimentCleanup();
       Serial.println(F(" Have a nice day."));
       state = no_experiment;
+      
+      delay(1000);
       break;
     }/////end done //////
     

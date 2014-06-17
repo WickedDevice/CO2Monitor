@@ -6,6 +6,7 @@
 
 // This implementation saves data to EEPROM.
 //    Uses a 'struct' of an integer for the ppm, long for the time.
+//    ....time][#######ppm######][##############time##############][ppm...
 
 
 ////// Macro definitions

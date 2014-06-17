@@ -41,6 +41,7 @@ boolean experimentEnded() {
 boolean sendPacket(void) {
   //Creates and sends a packet of data to the server containing CO2 results and timestamps
   Serial.println(F("Sending data..."));
+  lcd_print_top("Sending data...");
   
   client = cc3000.connectTCP(ip, LISTEN_PORT);
   
@@ -139,7 +140,7 @@ boolean sendPacket(void) {
     } else {
       //Otherwise, retry with the same data.
       prevDataNotSent(dataInPacket);
-        
+      lcd_print_top("No connection");
       Serial.println(F("Connection failed"));
       return false;
     }
@@ -294,6 +295,18 @@ void experimentCleanup() {
   clearData();
 }
 
+//////////////////////////////
+//// LCD display functions ///
+//////////////////////////////
+void lcd_print_top(char* string) {
+  lcd.clear();
+  lcd.print(string);
+}
+
+void lcd_print_bottom(char* string) {
+  lcd.setCursor(0,1);
+  lcd.print(string);
+}
 
 //////////////////////////////
 //// CO2 sensor functions ////

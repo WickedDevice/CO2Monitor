@@ -20,14 +20,16 @@ inline int printTimeDiffSmall(const __FlashStringHelper *label) {
 
 //Returns whether the user has requested smart config
 boolean attemptSmartConfig(void) {
+  lcd_print_top("Push button for");
+  lcd_print_bottom("Smart Config. . ");
   int time = SMARTCONFIG_WAIT;
   while (time > 0) {
-    //wait for 7 seconds for user to select smartconfig
+    //wait for a few seconds for user to select smartconfig
     if(!(time % 100)) {
-      Serial.print(F("Push button for Smart Config. "));
-      Serial.print((time / 1000));
-      Serial.print('.');
-      Serial.println((time % 1000) / 100);
+      lcd.setCursor(13,1);
+      lcd.print(time / 1000);
+      lcd.setCursor(15,1);
+      lcd.print((time % 1000) / 100);
     }
     
     if (!digitalRead(BUTTON)) {
@@ -39,7 +41,7 @@ boolean attemptSmartConfig(void) {
       delay(100);
     }
   }
-  
+  lcd_print_top("Reconnecting");
   return false;
 }
 
@@ -69,7 +71,8 @@ boolean attemptSmartConfigReconnect(void){
 #ifdef INSTRUMENTED
   resetSmallTimeDiff();
 #endif
-
+  Serial.println(F("Warming up CC3000"));
+  
   if (!cc3000.begin(false, true))
   {
     Serial.println(F("Unable to re-connect!? Did you run the SmartConfigCreate"));
@@ -81,9 +84,11 @@ boolean attemptSmartConfigReconnect(void){
 #endif
 
   /* Round of applause! */
+  lcd_print_top("Reconnected");
   Serial.println(F("Reconnected!"));
   
   /* Wait for DHCP to complete */
+  lcd_print_bottom("Requesting DHCP");
   Serial.println(F("\nRequesting DHCP"));
   int time = 0;
   while (!cc3000.checkDHCP()) {
@@ -92,6 +97,7 @@ boolean attemptSmartConfigReconnect(void){
     wdt_reset();
     if (time > 10000) {
       Serial.println(F("DHCP failed!"));
+      lcd_print_bottom("DHCP failed");
       return false;
     }
   }
@@ -108,8 +114,10 @@ boolean attemptSmartConfigCreate(void){
   /* is the default behaviour)  */
   wdt_reset();
   Serial.println(F("\nInitialising the CC3000 ..."));
+  
   if (!cc3000.begin(false))
   {
+    Serial.println("Wifi chip failed");
     return false;
   }
   wdt_reset();
@@ -117,20 +125,26 @@ boolean attemptSmartConfigCreate(void){
   /* Try to use the smart config app (no AES encryption), saving */
   /* the connection details if we succeed */
   Serial.println(F("Waiting for a SmartConfig connection (~60s) ..."));
+  
+  lcd_print_top("Waiting for"); lcd_print_bottom("SmartConfig(60s)");
+  
   if (!cc3000.startSmartConfig(false))
   {
+    lcd.clear(); lcd_print_top("SmartConfig"); lcd_print_bottom("failed");
+    
     Serial.println(F("SmartConfig failed"));
     return false;
   }
   wdt_enable(WDTO_8S);
   wdt_reset();
   Serial.println(F("Saved connection details and connected to AP!"));
+  lcd.clear(); lcd_print_top("Connected"); 
   
   int time = 0;
   
   /* Wait for DHCP to complete */
-  Serial.println(F("Request DHCP"));
-  while (!cc3000.checkDHCP()) 
+  Serial.println(F("Request DHCP")); lcd_print_bottom("Requesting DHCP");
+  while (!cc3000.checkDHCP())
   {
     delay(100);
     time += 100;
@@ -138,6 +152,7 @@ boolean attemptSmartConfigCreate(void){
     if (time > 20000) {
       time = 0;
       Serial.println(F("DHCP failed!"));
+      lcd.clear();lcd_print_top("DHCP failed");
       return false;
     }
   }  
