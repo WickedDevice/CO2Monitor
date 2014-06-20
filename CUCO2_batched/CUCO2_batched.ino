@@ -58,6 +58,8 @@ void setup(void)
 {
   Serial.begin(115200);
   Serial.println(F("Programmed on " __DATE__ ", " __TIME__));
+  Serial.println(F("Server is " HOST));
+  
   lcd.begin(16,2);
 #ifdef INSTRUMENTED
   Serial.println(F("wdt disabled"));
@@ -257,7 +259,9 @@ void loop(void) {
         break;
       }
 
-      if(!sendPacket()) {
+      int dataInPacket = assemblePacket();
+
+      if(!sendPacket(dataInPacket)) {
         Serial.println(F("SHOULD Reconnect and try again..."));
       }
       

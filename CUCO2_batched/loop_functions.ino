@@ -36,23 +36,14 @@ boolean experimentEnded() {
   }
 }
 
-
-/* Contacts the server and sends a single packet of data collected. */
-boolean sendPacket(void) {
-  //Creates and sends a packet of data to the server containing CO2 results and timestamps
-  Serial.println(F("Sending data..."));
-  lcd_print_top("Sending data...");
-  
-  client = cc3000.connectTCP(ip, LISTEN_PORT);
-  
-#ifdef INSTRUMENTED
-  printTimeDiff(F("TCP connection established: "));
-#endif
-
-    //Assembling packet.
+int assemblePacket(void) {
+      //Assembling packet.
     int datalength = 0;
-    char data[DATA_MAX_LENGTH] = "\n";
-    strcat_P(data, PSTR("{\"sensor_datum\": {\"ppm\": {"));
+    char data[DATA_MAX_LENGTH] = "";
+    strcat_P(data, PSTR("{\"sensor_datum\": "));
+    int before_encryption = strlen(data);
+    
+    strcat_P(data, PSTR("{\"ppm\": {"));
     
     char ppm[10] = "";
     char timestamp[10] = "";
@@ -71,8 +62,10 @@ boolean sendPacket(void) {
       strcat(data, ppm);
       strcat_P(data, PSTR("\","));
     }
-    data[strlen(data)-1] = '\0'; //Removing trailing comma
-          //(will fail on packets with no data, which shouldn't be a problem)
+    
+    //Removing trailing comma if there is data
+    datalength = strlen(data); //Not its final value
+    data[datalength-1] = dataInPacket ? '\0' : data[datalength-1];
     
     strcat_P(data, PSTR("}, \"device_address\": \""));
     strcat(data, address);
@@ -89,9 +82,14 @@ boolean sendPacket(void) {
       strcat_P(data, PSTR("false"));
     }
     
-    strcat_P(data,PSTR("\"}}"));
+    strcat_P(data, PSTR("\"},\"device_address\":\""));
+    strcat(data, address);
+    strcat_P(data, PSTR("\"}"));
+    
+    //Run encryption
+    encrypt(data, vignere_key, data);
 
-    //Serial.print("Outgoing data: "); Serial.println(data);
+    Serial.print("Outgoing data: "); Serial.println(data);
 
     datalength = strlen(data);
 
@@ -105,11 +103,53 @@ boolean sendPacket(void) {
     strcat(putstr_buffer,address);
     strcat_P(putstr_buffer, PSTR(".json HTTP/1.1"));
 
-    makePacketHeader(putstr_buffer, datalength);
-    strcat(packet_buffer, data);
+    int additionalCharacters = 17; // the brackets, :, and "s
+    //Account for characters that will be escaped
+    for(int i=0; i<datalength; i++) {
+      if(data[i] == '\\' || data[i]=='"')
+        additionalCharacters++;
+    }
+
+    makePacketHeader(putstr_buffer, "application/json", datalength + additionalCharacters);
+    
+    //Serial.print("Header: "); Serial.println(packet_buffer);
+    
+    //strcat(packet_buffer, data);
+    strcat_P(packet_buffer, PSTR("\n{\"encrypted\":\""));
+    
+    //Copy encrypted text and escape " and \s
+    int packetSize = strlen(packet_buffer);
+    for(int i=0; i<datalength; i++) {
+      if(data[i] == '"' || data[i] == '\\') {
+        packet_buffer[packetSize] = '\\';
+        packetSize++;
+      }
+      packet_buffer[packetSize] = data[i];
+      packetSize++;
+    }
+    packet_buffer[packetSize] = '\0';
+    
+    strcat_P(packet_buffer, PSTR("\"}"));
+    
+    Serial.println(packet_buffer);
+
 
 #ifdef INSTRUMENTED
   printTimeDiff(F("Packet assembled: "));
+#endif
+  return dataInPacket;
+}
+
+/* Contacts the server and sends a single packet of data collected. */
+boolean sendPacket(int dataInPacket) {
+  //Creates and sends a packet of data to the server containing CO2 results and timestamps
+  Serial.println(F("Sending data..."));
+  lcd_print_top("Sending data...");
+  
+  client = cc3000.connectTCP(ip, LISTEN_PORT);
+  
+#ifdef INSTRUMENTED
+  printTimeDiff(F("TCP connection established: "));
 #endif
     
     wdt_reset();
@@ -153,7 +193,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   client = cc3000.connectTCP(ip, LISTEN_PORT);
   Serial.println(F("Connected"));
   int datalength = 0;
-  char data[512] = "";
+  char data[1] = "";
   
 #ifdef INSTRUMENTED
   printTimeDiff(F("TCP connection established: "));
@@ -163,7 +203,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   char putstr_buffer[64] = "GET /first_contact/";
   strcat(putstr_buffer, address);
   strcat_P(putstr_buffer, PSTR(".html HTTP/1.1"));
-  makePacketHeader(putstr_buffer, datalength);
+  makePacketHeader(putstr_buffer, "application/json", datalength);
   
   strcat(packet_buffer, data);
   Serial.println(F("Sending request"));
@@ -173,6 +213,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   printTimeDiff(F("Request constructed: "));
 #endif
   
+  Serial.println(packet_buffer);
   client.fastrprintln(packet_buffer);
 
 #ifdef INSTRUMENTED
@@ -217,7 +258,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
     if(client.available()) {
       wdt_reset();
       serverReply[i] = (char)client.read();
-      i++;
+      i = (i == 0 && ( serverReply[0] == ' ' || serverReply[0] == '\n') ) ?  i : i+1;
     } else {
       //delay(50);
     }
@@ -236,6 +277,13 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   Serial.println("ServerReply:");
   Serial.println(serverReply);
 #endif
+  
+  //Decoding server reply
+  Serial.print("\nserverReply[0]: "); Serial.println((int)serverReply[0]);
+  Serial.println("ServerReply:");
+  Serial.println(serverReply);
+  decrypt(serverReply, vignere_key, serverReply);
+  Serial.println(serverReply);
   
   //Extracting information from the reply
   long int time;
@@ -277,12 +325,14 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
 }
 
 /* Constructs a packet header at the start of packet_buffer (which it returns) */
-char *makePacketHeader(char *request_type_and_location, int datalength) {
+char *makePacketHeader(char *request_type_and_location, char *mime_type, int datalength) {
   char len_buffer[32] = "";
   itoa(datalength, len_buffer, 10);
   packet_buffer[0] = '\0';
   strcat(packet_buffer, request_type_and_location);
-  strcat_P(packet_buffer, PSTR("\nHost: " HOST "\nContent-Type: application/json; charset=UTF-8\nContent-Length: "));  
+  strcat_P(packet_buffer, PSTR("\nHost: " HOST "\nContent-Type: "));
+  strcat(packet_buffer, mime_type);  
+  strcat_P(packet_buffer, PSTR("; charset=UTF-8\nContent-Length: "));  
   strcat(packet_buffer, len_buffer);
   strcat_P(packet_buffer, PSTR("\nConnection: close\n")); 
   
