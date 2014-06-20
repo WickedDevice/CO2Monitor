@@ -20,6 +20,7 @@ long int experimentSeconds() {
 
 
 boolean justStarted = true; //Whether, during the experiment, the CO2 ppm has risen above the CO2_cutoff threshold
+
 /* Returns whether the experiment has ended or not
     Currently determines this by checking to see if the CO2 ppm has risen past a threshold and fallen back down below it.
  */
@@ -36,6 +37,7 @@ boolean experimentEnded() {
   }
 }
 
+/* Assembles a packet for uploading recorded data */
 int assemblePacket(void) {
       //Assembling packet.
     int datalength = 0;
@@ -141,7 +143,7 @@ int assemblePacket(void) {
 }
 
 /* Contacts the server and sends a single packet of data collected. */
-boolean sendPacket(int dataInPacket) {
+boolean sendPacket() {
   //Creates and sends a packet of data to the server containing CO2 results and timestamps
   Serial.println(F("Sending data..."));
   lcd_print_top("Sending data...");
@@ -178,8 +180,7 @@ boolean sendPacket(int dataInPacket) {
       
       return true;
     } else {
-      //Otherwise, retry with the same data.
-      prevDataNotSent(dataInPacket);
+      //Fail
       lcd_print_top("No connection");
       Serial.println(F("Connection failed"));
       return false;
