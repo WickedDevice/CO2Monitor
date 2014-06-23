@@ -13,9 +13,11 @@
 
 #define SAVE_SPACE 500                                  //Number of datapoints saved
 
-//#define encryption_key_loc
+#define ENCRYPTION_MAGIC_NUM_LOC ((byte *) 0)
 
-#define MAGIC_NUM_LOC ((byte *) 32)                     // First 32 bytes are saved for other things... probably
+#define ENCRYPTION_KEY_PTR ((byte *) ENCRYPTION_MAGIC_NUM_LOC+1)
+
+#define MAGIC_NUM_LOC ((byte *) ENCRYPTION_KEY_PTR + 32)
 #define MAGIC_NUM_VAL 'D'                               // 'Magic number' that tells if the eeprom has been compromised/overwritten
 
 #define EXPERIMENT_PTR ((uint16_t *) MAGIC_NUM_LOC+1)
@@ -116,7 +118,6 @@ void clearData() {
 
 
 boolean validMemory() {
-  Serial.println((int) SENT_PTR); //remove later
   return eeprom_read_byte(MAGIC_NUM_LOC) == MAGIC_NUM_VAL;
 }
 
@@ -125,4 +126,30 @@ int getExperimentId() {
 }
 void setExperimentId(int experiment_id) {
   eeprom_write_word(EXPERIMENT_PTR, (uint16_t) experiment_id);
+}
+
+
+boolean validEncryptionKey() {
+  return eeprom_read_byte(ENCRYPTION_MAGIC_NUM_LOC) == MAGIC_NUM_VAL;
+}
+
+void getEncryptionKey(char *buffer) {
+  char c;
+  int i = 0;
+  do {
+    c = eeprom_read_byte(ENCRYPTION_KEY_PTR + i);
+    buffer[i] = c;
+    i++;
+  } while(c != '\0');
+}
+
+void setEncryptionKey(char *key) {
+  int keyLength = strlen(key) > 32 ? 32 : strlen(key);
+  int i;
+  for(i = 0; i < keyLength; i++) {
+    eeprom_write_byte(ENCRYPTION_KEY_PTR + i, key[i]);
+  }
+  eeprom_write_byte(ENCRYPTION_KEY_PTR + i, '\0');
+  
+  eeprom_write_byte(ENCRYPTION_MAGIC_NUM_LOC, MAGIC_NUM_VAL);
 }

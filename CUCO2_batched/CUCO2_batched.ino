@@ -40,6 +40,8 @@ WildFire wf;
 char address[13] = "";//Mac address
 int experiment_id, CO2_cutoff;
 long experimentStart = 0, millisOffset = 0;
+char vignere_key[32] = ""; //Encryption key
+
 
 #define MAX_UPDATE_SPEED 2000 //Read the sensor at most this often
 unsigned long loopTime = 0;
@@ -65,7 +67,7 @@ void setup(void)
   Serial.println(F("wdt disabled"));
   printTimeDiff(F("Millis: "));
 #else
-  wdt_enable(WDTO_8S);
+  wdt_enable(WDT_WAIT);
 #endif
   
   wf.begin();
@@ -130,13 +132,32 @@ void setup(void)
 #ifdef INSTRUMENTED
   printTimeDiff(F("Found mac address: "));
 #endif
+
+  // Finding encryption key
+  if(!validEncryptionKey()) {
+    Serial.println("\nInvalid encryption key");
+    while(true) {
+      lcd_print_top("No encryption");
+      lcd_print_bottom("key");
+      delay(1000);
+      lcd_print_top("Contact");
+      lcd_print_bottom("Wicked Device");
+      delay(1000);
+    }
+  } else {
+    getEncryptionKey(vignere_key);
+  }
+  
   
   state = no_experiment;
-  
+
+
   if(!validMemory()) {
     Serial.println(F("EEPROM has incorrect data"));
     lcd_print_top("Invalid records..."); lcd_print_bottom("Clearing data");
     clearData();
+    lcd_print_bottom("Please restart");
+    state = error;
   } else if(hasMoreData()) {
     Serial.println(F("Attempting to upload old data"));
     lcd_print_top("Uploading data"); lcd_print_bottom("from last reboot");

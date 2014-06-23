@@ -43,6 +43,7 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
 #define BUTTON 5                    //Pin that the button is attached to
                                     //Note: Button is pushed when low
 
+#define WDT_WAIT WDTO_8S            //Amount of time the watch dog timer waits before restarting the WildFire
 LiquidCrystal lcd(A1, A2, A3, A4, A5, A6); //Pins attached to the LCD display.
 //  http://arduino.cc/en/Tutorial/LiquidCrystal
 

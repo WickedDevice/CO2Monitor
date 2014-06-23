@@ -56,6 +56,3 @@ int main() {
 }
 */
 
-//Example key
-char vignere_key[] = "post_modern_octopus";
-

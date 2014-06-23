@@ -19,6 +19,7 @@ inline int printTimeDiffSmall(const __FlashStringHelper *label) {
 #endif
 
 //Returns whether the user has requested smart config
+// if the user has a serial and types something, it will jump to 
 boolean attemptSmartConfig(void) {
   lcd_print_top("Push button for");
   lcd_print_bottom("Smart Config. . ");
@@ -39,6 +40,10 @@ boolean attemptSmartConfig(void) {
      // Serial.println(F("Waiting for smartconfig"));
       time -= 100;
       delay(100);
+      
+      if(Serial.available()) {
+        configure(); //One-time setup for encryption key
+      }
     }
   }
   lcd_print_top("Reconnecting");
@@ -160,6 +165,79 @@ boolean attemptSmartConfigCreate(void){
   return true;
 }
 
+
+/* Prompt for one-time configuration of WildFire */
+void configure() {
+  
+  //Ignore the first bit of typing
+  while(Serial.available()) {
+    Serial.read();
+  }
+  
+  uint8_t mac[6] = "";
+  if(!cc3000.getMacAddress(mac)) {
+    Serial.println(F("Error: unable to get mac address"));
+  } else {
+    mactoa(mac,address);
+    Serial.println(F("MAC address:"));
+    Serial.println(address);
+  }
+  
+  if(validMemory()){
+    Serial.println(F("\nOld encryption key found. Overwrite? y/n"));
+  } else {
+    Serial.println(F("\nEncryption key not found, make a new one? y/n"));
+  }
+  while(!Serial.available()) { delay(100);}
+  
+  char yesNo = Serial.read();
+  if(yesNo == 'Y' || yesNo == 'y') {
+    setEncryptionKeyBySerial();
+  }
+  
+  Serial.println(F("Configuration finished, restarting."));
+  soft_reset();  
+}
+
+/* Serial interface for setting the encryption key */
+void setEncryptionKeyBySerial() {
+  Serial.println(F("\nPlease type in new encryption key. (<32 characters)"));
+  
+  boolean done = false;
+  char buffer[32] = "";
+  int index = 0;
+  char c = ' ';  //' ' is an arbitrary value
+  
+  wdt_disable();
+  
+  while(c != '\n' && c != '\0') { //Until newline
+    while(Serial.available()) {
+      c = Serial.read();
+      if(c == '\n') {
+        buffer[index] = '\0';
+        break;
+      }
+      buffer[index] = c;
+      index++;
+    }
+  } //end while for Serial reading
+  
+  Serial.println(F("Your new encryption key is:"));
+  Serial.println(buffer);
+  Serial.println(F("Is this OK? y/n"));
+  while(!Serial.available()){}
+  c = Serial.read();
+  if(c == 'Y' || c == 'y') {
+    wdt_enable(WDT_WAIT);
+    setEncryptionKey(buffer);
+    Serial.println(F("Key saved."));
+  } else {
+    while(Serial.available())
+    { Serial.read(); }
+    wdt_enable(WDT_WAIT);
+    setEncryptionKeyBySerial();
+  }
+}
 
 /////////////////////
 ///// Printing //////
