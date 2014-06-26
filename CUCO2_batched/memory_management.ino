@@ -103,13 +103,8 @@ void nextDatum(int &ppm, long &timestamp) {
   return;
 }
 
-void prevDataNotSent(int amt) {
-  //Allows resending of data that has been read once
-  dataRead -= amt;
-  return;
-}
-
 void prevDataNotSent() {
+  //Allows sending of data that has been read already
   dataRead = SENT();
   return;
 }

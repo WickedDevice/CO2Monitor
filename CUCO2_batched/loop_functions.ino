@@ -163,7 +163,7 @@ boolean sendPacket() {
 
       wdt_reset();
       
-      while(client.available()) { //flushing input buffer
+      while(client.available()) { //flushing input buffer, just in case
         client.read();
       }
       
@@ -177,18 +177,40 @@ boolean sendPacket() {
  #endif
 
       Serial.println(F("Packet sent.\nWaiting for response."));
-
+      wdt_reset();
+      
       int timeLeft = 5000;
-      while(!client.available() && timeLeft) {
-        delay(50);
-        timeLeft -= 50;
-      }
+      char headerBuffer[7] = {0,0,0,0,0,0,0};
+      while(timeLeft) {
+        if(!strcmp("start\n", headerBuffer) && client.available()) {
+          //When the header is over, and there is one character from the actual body
+          break;
+        }
+        
+        if(client.available()) {
+          //Add the new character to the end of headerBuffer
+          for(int i=0; i<5; i++) {
+            headerBuffer[i] = headerBuffer[i+1];
+          }
+          headerBuffer[5] = client.read();
+          //Serial.print(headerBuffer[5]);
+        } else {
+          delay(50);
+          timeLeft -= 50;
+        }
+        
+      } //End ignoring header
+      
+      wdt_reset();
+
       if(client.read() != 'S') {
         Serial.println(F("Upload failed"));
         //if uploading succeeded, the server will display a page that says "Success uploading data".
         // otherwise, it will show "Failed to upload"
         //On a timeout, client.read() gives -1.
         return false;
+      } else {
+        Serial.println(F("Upload succeeded"));
       }
  
  
