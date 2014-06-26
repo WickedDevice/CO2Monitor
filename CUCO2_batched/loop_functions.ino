@@ -162,6 +162,11 @@ boolean sendPacket() {
 #endif
 
       wdt_reset();
+      
+      while(client.available()) { //flushing input buffer
+        client.read();
+      }
+      
       client.fastrprintln(packet_buffer);
 
 #ifdef INSTRUMENTED
@@ -170,6 +175,22 @@ boolean sendPacket() {
       Serial.println(packet_buffer);
       Serial.println();
  #endif
+
+      Serial.println(F("Packet sent.\nWaiting for response."));
+
+      int timeLeft = 5000;
+      while(!client.available() && timeLeft) {
+        delay(50);
+        timeLeft -= 50;
+      }
+      if(client.read() != 'S') {
+        Serial.println(F("Upload failed"));
+        //if uploading succeeded, the server will display a page that says "Success uploading data".
+        // otherwise, it will show "Failed to upload"
+        //On a timeout, client.read() gives -1.
+        return false;
+      }
+ 
  
       client.close();
       
@@ -302,7 +323,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   if(varsRead >= 3) {
     CO2_cutoff = CO2_cutoff_tmp;
   } else {
-    CO2_cutoff = 2000;
+    CO2_cutoff = DEFAULT_CO2_CUTOFF;
   }
 
 #ifdef INSTRUMENTED
@@ -384,12 +405,12 @@ boolean sendRequest(byte packet[]) {
         
         wdt_reset();
         if (time > 5000) //if it takes to long there was probably an error
-                {
+        {
+            Serial.println(F("Could not get response from sensor!"));
             while (K_30_Serial.available()) { //flush whatever we have
                 K_30_Serial.read();
-                Serial.println("Could not get response from sensor!");
-                return false;
             }
+            return false;
         }
         time += 50;
         delay(50);
@@ -402,8 +423,10 @@ boolean sendRequest(byte packet[]) {
 }
 
 unsigned long getValue(byte packet[]) {
-    int high = packet[3]; //high byte for value is 4th byte in packet in the packet
-    int low = packet[4]; //low byte for value is 5th byte in the packet
-    unsigned long val = high * 256 + low; //Combine high byte and low byte with this formula to get value
-    return val * valMultiplier;
+    uint8_t high = packet[3]; //high byte for value is 4th byte in packet in the packet
+    uint8_t low = packet[4]; //low byte for value is 5th byte in the packet
+    uint16_t val = high;
+    val <<= 8;
+    val |= low;
+    return (unsigned long) val * valMultiplier;
 }

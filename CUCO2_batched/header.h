@@ -38,10 +38,13 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
                                                    // ~160 for header, ~64 for extra space
 
 
-#define SMARTCONFIG_WAIT 1000       //Time to wait before attempting to reconnect (milliseconds)
+#define SMARTCONFIG_WAIT 4000       //Time to wait before attempting to reconnect (milliseconds)
 
 #define BUTTON 5                    //Pin that the button is attached to
                                     //Note: Button is pushed when low
+#define BUTTON_PUSHED (!digitalRead(BUTTON))
+
+#define DEFAULT_CO2_CUTOFF 2000    //when an offline experiment dips below this ppm of CO2, recording stops
 
 #define WDT_WAIT WDTO_8S            //Amount of time the watch dog timer waits before restarting the WildFire
 LiquidCrystal lcd(A1, A2, A3, A4, A5, A6); //Pins attached to the LCD display.
@@ -52,3 +55,5 @@ LiquidCrystal lcd(A1, A2, A3, A4, A5, A6); //Pins attached to the LCD display.
 
 //If this is defined, the device attempts to send realtime data as it is collected
 //#define REALTIME_UPLOAD
+
+

@@ -41,7 +41,7 @@ char address[13] = "";//Mac address
 int experiment_id, CO2_cutoff;
 long experimentStart = 0, millisOffset = 0;
 char vignere_key[32] = ""; //Encryption key
-
+boolean offlineMode = false;
 
 #define MAX_UPDATE_SPEED 2000 //Read the sensor at most this often
 unsigned long loopTime = 0;
@@ -77,6 +77,31 @@ void setup(void)
   K_30_Serial.begin(9600);
   //lcd_print_top("Began WildFire");
   
+  
+  //Initializing from nonvolatile memory
+  if(!validEncryptionKey()) {
+    Serial.println(F("\nInvalid encryption key"));
+    while(true) {
+      lcd_print_top("No encryption");
+      lcd_print_bottom("key");
+      delay(1000);
+      lcd_print_top("Contact");
+      lcd_print_bottom("Wicked Device");
+      delay(1000);
+    }
+  } else if (!validMemory()) {
+    Serial.println(F("EEPROM has incorrect data"));
+    lcd_print_top("Invalid records..."); lcd_print_bottom("Clearing data");
+    clearData();
+    lcd_print_bottom("Please restart");
+    state = error;
+    return;
+  }
+  getEncryptionKey(vignere_key);
+  
+  
+  ///////////// WIFI setup /////////////
+  
   if(attemptSmartConfig()) {
     
     while(!attemptSmartConfigCreate()){
@@ -89,12 +114,26 @@ void setup(void)
     
     wdt_reset();
     if(!attemptSmartConfigReconnect()){
+      
+      if(BUTTON_PUSHED) {
+        if(hasMoreData()) {
+          lcd_print_top("Old Data found");
+          lcd_print_bottom("Aborted");
+          //TODO: make this nicer
+          Serial.println(F("\nData from last reboot found.\nCannot collect more data before uploading."));
+          state = error;
+          return;
+        }
+        state = no_experiment;
+        offlineMode = true;
+        return;
+      }
+      
       Serial.println(F("Reconnect failed!"));
       lcd_print_top("Reconnect failed");
       cc3000.disconnect();
       soft_reset();
     }
-    
   }
 
 #ifdef INSTRUMENTED
@@ -120,45 +159,24 @@ void setup(void)
 #ifdef INSTRUMENTED
   printTimeDiff(F("printIPdotsRev: "));
 #endif
-
-  //Finding Mac address
+  ///////////////// END WIFI setup ///////////
+  
+  
+  //Finding MAC address (must happen after cc3000.begin() is called)
   uint8_t mac[6] = "";
   if(!cc3000.getMacAddress(mac)) {
     Serial.println(F("Error: unable to get mac address"));
     lcd_print_top("Error:No MACaddr");
-  }
-  mactoa(mac,address);
-  
-#ifdef INSTRUMENTED
-  printTimeDiff(F("Found mac address: "));
-#endif
-
-  // Finding encryption key
-  if(!validEncryptionKey()) {
-    Serial.println("\nInvalid encryption key");
-    while(true) {
-      lcd_print_top("No encryption");
-      lcd_print_bottom("key");
-      delay(1000);
-      lcd_print_top("Contact");
-      lcd_print_bottom("Wicked Device");
-      delay(1000);
-    }
+    state = error;
+    return;
   } else {
-    getEncryptionKey(vignere_key);
+    mactoa(mac,address);
   }
   
   
   state = no_experiment;
 
-
-  if(!validMemory()) {
-    Serial.println(F("EEPROM has incorrect data"));
-    lcd_print_top("Invalid records..."); lcd_print_bottom("Clearing data");
-    clearData();
-    lcd_print_bottom("Please restart");
-    state = error;
-  } else if(hasMoreData()) {
+  if(hasMoreData()) {
     Serial.println(F("Attempting to upload old data"));
     lcd_print_top("Uploading data"); lcd_print_bottom("from last reboot");
     experiment_id = getExperimentId();
@@ -186,8 +204,11 @@ void loop(void) {
       lcd_print_bottom("Hold to skip");
 
       experiment_id = 0;
-      if(!digitalRead(BUTTON)) {
-        //Button pushed
+      if(BUTTON_PUSHED || offlineMode) {
+        lcd_print_top("Offline mode");
+        Serial.println(F("Offline mode initiated"));
+        delay(500); //allowing user to let go of button
+        offlineMode = true;
         experimentStart = 0L;
         millisOffset = millis();
         experiment_id = -1;
@@ -205,13 +226,11 @@ void loop(void) {
         int time = 0;
         for(time = 0; time < 10; time++) {
           delay(100);
-          if(!digitalRead(BUTTON)) {
-            experimentStart = 0L;
-            millisOffset = millis();
-            experiment_id = -1;
+          if(BUTTON_PUSHED) {
+            offlineMode = true;
             break;
           }
-        }
+        }//end waiting for message
       }
       
       break;
@@ -247,13 +266,27 @@ void loop(void) {
 
 
       loopTime = millis();
+      
+      
+      for(int i=0; i<10 && (valCO2 > 10000 || valCO2 < 200); i++) {
+        Serial.println(K_30_Serial.available());
+        Serial.println(sendRequest(readCO2));
+        valCO2 = getValue(response);
+        Serial.println(valCO2);
+      }
+
 
 #ifdef REALTIME_UPLOAD
       state = uploading;
 #endif
-      lcd_print_bottom("Hold to upload");
-      Serial.println("Recording data... Push button to force upload.");
-      if(!digitalRead(BUTTON) && hasMoreData()) {
+      if(offlineMode) {
+        lcd_print_bottom("Offline Mode");
+      } else {
+        lcd_print_bottom("Hold to upload");
+        Serial.println("Recording data... Push button to force upload.");
+      }
+      
+      if(BUTTON_PUSHED && hasMoreData()) {
         lcd_print_top("Button pushed");
         Serial.println(F("Interrupted recording early."));
         state = uploading;
@@ -271,9 +304,18 @@ void loop(void) {
     
     case uploading: {
       
+      if(offlineMode) {
+        lcd_print_bottom("Offline mode");
+        delay(1000);
+        lcd_print_top("Restart sensor");
+        lcd_print_bottom("To upload");
+        state = error;
+        break;
+      }
+      
       if(!hasMoreData()) {
         if(experimentEnded() || outOfSpace() ) {
-          state = done; 
+          state = done;
         } else {
           state = no_experiment; // If someone pushed the button, it will stop recording anyway
         }

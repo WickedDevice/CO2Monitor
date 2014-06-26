@@ -33,7 +33,7 @@ boolean attemptSmartConfig(void) {
       lcd.print((time % 1000) / 100);
     }
     
-    if (!digitalRead(BUTTON)) {
+    if (BUTTON_PUSHED) {
       return true;
     }
     else {
@@ -97,10 +97,12 @@ boolean attemptSmartConfigReconnect(void){
   Serial.println(F("\nRequesting DHCP"));
   int time = 0;
   while (!cc3000.checkDHCP()) {
-    delay(100); // ToDo: Insert a DHCP timeout!
+    delay(100);
     time += 100;
     wdt_reset();
-    if (time > 10000) {
+    if(BUTTON_PUSHED) {
+      return false;
+    } if (time > 10000) {
       Serial.println(F("DHCP failed!"));
       lcd_print_bottom("DHCP failed");
       return false;
@@ -165,33 +167,68 @@ boolean attemptSmartConfigCreate(void){
   return true;
 }
 
-
+#include <utility/nvmem.h>
+#include <utility/wlan.h>
+#include <utility/hci.h>
 /* Prompt for one-time configuration of WildFire */
 void configure() {
-  
+  lcd_print_top("Configuring");
   //Ignore the first bit of typing
   while(Serial.available()) {
     Serial.read();
   }
   
+  
+  //////////Begin get mac address
+  
+  //Does what it needs to to initialize the cc3000 enough
+  // to read the MAC address
+  //    We don't want to just call cc3000.begin, because that would attempt to connect to a network.
+  Serial.print(F("Finding mac address ."));
+  init_spi();
+  Serial.print('.');
+  wlan_init(CC3000_UsynchCallback,
+          sendWLFWPatch, sendDriverPatch, sendBootLoaderPatch,
+          ReadWlanInterruptPin,
+          WlanInterruptEnable,
+          WlanInterruptDisable,
+          WriteWlanPin);
+  Serial.print('.');
+  wlan_start(0);
+  Serial.println('.');
+  
+  wdt_reset();
   uint8_t mac[6] = "";
-  if(!cc3000.getMacAddress(mac)) {
+  
+  if(nvmem_get_mac_address(mac)) {
     Serial.println(F("Error: unable to get mac address"));
   } else {
     mactoa(mac,address);
     Serial.println(F("MAC address:"));
     Serial.println(address);
   }
+  /////////End get mac address
   
-  if(validMemory()){
-    Serial.println(F("\nOld encryption key found. Overwrite? y/n"));
+  Serial.println(F("Configuration started.\nPlease make sure you are using a serial mode with newlines."));
+  
+  if(validEncryptionKey()){
+    Serial.println(F("\nOld encryption key found:"));
+    char buffer[32] = "";
+    getEncryptionKey(buffer);
+    Serial.println(buffer);
+    Serial.println(F("Overwrite? y/n"));
   } else {
     Serial.println(F("\nEncryption key not found, make a new one? y/n"));
   }
+  wdt_reset(); //I would disable the watch dog timer, but I don't want to be stuck here by accident
+  
   while(!Serial.available()) { delay(100);}
   
+  wdt_reset();
   char yesNo = Serial.read();
+  Serial.read(); //Get rid of newline
   if(yesNo == 'Y' || yesNo == 'y') {
+    wdt_reset();
     setEncryptionKeyBySerial();
   }
   
@@ -227,6 +264,7 @@ void setEncryptionKeyBySerial() {
   Serial.println(F("Is this OK? y/n"));
   while(!Serial.available()){}
   c = Serial.read();
+  Serial.read(); //Getting rid of newline
   if(c == 'Y' || c == 'y') {
     wdt_enable(WDT_WAIT);
     setEncryptionKey(buffer);
