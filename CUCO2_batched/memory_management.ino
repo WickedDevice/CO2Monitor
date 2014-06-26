@@ -37,6 +37,8 @@
 #define PPM_AT(n)   ((uint16_t *)((n)*RECORD_SIZE + SAVE_START))
 #define TIME_AT(n)  ((uint32_t *)((n)*RECORD_SIZE + SAVE_START + sizeof(int)))
 
+uint16_t dataRead = SENT();
+
 ///// Functions
 
 boolean saveDatum(unsigned int valCO2) {
@@ -73,9 +75,8 @@ boolean outOfSpace(void) {
 boolean hasMoreData(void) {
   //Determines whether there are more data to send
   uint16_t saved = SAVED();
-  uint16_t sent  = SENT();
   
-  return (saved > sent ? true : false);
+  return (saved > dataRead ? true : false);
 }
 
 
@@ -93,19 +94,28 @@ int mostRecentDataAvg(int numToAverage = 5) {
 
 void nextDatum(int &ppm, long &timestamp) {
   //Gets the next datapoint
-  uint16_t sent = SENT();
-  ppm =       eeprom_read_word( PPM_AT( sent));
-  timestamp = eeprom_read_dword(TIME_AT(sent));
   
-  eeprom_write_word(SENT_PTR, sent+1);
+  ppm =       eeprom_read_word( PPM_AT( dataRead));
+  timestamp = eeprom_read_dword(TIME_AT(dataRead));
+  
+  dataRead++;
   
   return;
 }
 
 void prevDataNotSent(int amt) {
   //Allows resending of data that has been read once
-  eeprom_write_word(SENT_PTR, SENT()- amt);
+  dataRead -= amt;
   return;
+}
+
+void prevDataNotSent() {
+  dataRead = SENT();
+  return;
+}
+
+void dataSent() {
+  eeprom_write_word(SENT_PTR, dataRead);
 }
 
 //'deletes' all data from eeprom & reconfigures memory.
@@ -113,6 +123,7 @@ void clearData() {
   eeprom_write_word( SENT_PTR, 0);
   eeprom_write_word(SAVE_PTR, 0);
   eeprom_write_byte( MAGIC_NUM_LOC, MAGIC_NUM_VAL);
+  dataRead = SENT();//0
   setExperimentId(0);
 }
 

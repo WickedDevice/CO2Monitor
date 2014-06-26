@@ -324,9 +324,11 @@ void loop(void) {
 
       int dataInPacket = assemblePacket();
 
-      if(!sendPacket()) {
+      if(sendPacket()) {
+        dataSent();
+      } else {
         Serial.println(F("SHOULD Reconnect and try again..."));
-        prevDataNotSent(dataInPacket);
+        prevDataNotSent();
       }
       
       break;

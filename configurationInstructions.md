@@ -1,6 +1,6 @@
-Configuring the CO2 sensor sketch:
+#Configuring the CO2 sensor sketch:
 
-#Encryption key & Mac Address Configuration:
+##Encryption key & Mac Address Configuration:
 
 * Load the CUCO2_batched sketch onto the WildFire
 
@@ -40,7 +40,7 @@ Configuring the CO2 sensor sketch:
 * The sensor should restart, properly configured.
 
 
-#Smart Config wifi configuration:
+##Smart Config wifi configuration:
 This needs to be done every time the WildFire connects to a new network
 
 * Press the button on the sensor right after it restarts.

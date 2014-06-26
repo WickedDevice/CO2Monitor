@@ -342,7 +342,6 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
 
   delay(100); //SHOULD this be here?
   
-  
   return;
 }
 
