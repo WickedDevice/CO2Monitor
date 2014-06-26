@@ -389,7 +389,7 @@ boolean sendRequest(byte packet[]) {
     while (!K_30_Serial.available()) //keep sending request until we start to get a response
     {        
         wdt_reset();
-        if (time > 5000) //if it takes to long there was probably an error
+        if (time > 5000) //if it takes too long there was probably an error
                 {
                 Serial.println("Could not send request to sensor!");
                 return false;
