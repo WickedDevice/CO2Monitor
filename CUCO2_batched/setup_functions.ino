@@ -18,6 +18,7 @@ inline int printTimeDiffSmall(const __FlashStringHelper *label) {
 
 #endif
 
+
 //Returns whether the user has requested smart config
 // if the user has a serial and types something, it will jump to 
 boolean attemptSmartConfig(void) {
@@ -100,9 +101,9 @@ boolean attemptSmartConfigReconnect(void){
     delay(100);
     time += 100;
     wdt_reset();
-    if(BUTTON_PUSHED) {
+    if(BUTTON_PUSHED) { //Skip to offline mode
       return false;
-    } if (time > 10000) {
+    } else if (time > 10000) { //Timeout
       Serial.println(F("DHCP failed!"));
       lcd_print_bottom("DHCP failed");
       return false;
@@ -183,7 +184,8 @@ void configure() {
   
   //Does what it needs to to initialize the cc3000 enough
   // to read the MAC address
-  //    We don't want to just call cc3000.begin, because that would attempt to connect to a network.
+  //    We don't want to just call cc3000.begin,
+  //      because that would attempt to connect to a network.
   Serial.print(F("Finding mac address ."));
   init_spi();
   Serial.print('.');
@@ -233,7 +235,7 @@ void configure() {
   }
   
   Serial.println(F("Configuration finished, restarting."));
-  soft_reset();  
+  soft_reset();
 }
 
 /* Serial interface for setting the encryption key */

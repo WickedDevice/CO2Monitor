@@ -32,29 +32,28 @@ void wdt_init(void)
     return;
 }
 
-uint32_t ip;
+uint32_t ip = 0;
 WildFire_CC3000 cc3000;
 WildFire_CC3000_Client client;
 WildFire wf;
 
 char address[13] = "";//Mac address
-int experiment_id, CO2_cutoff;
+int experiment_id=0, CO2_cutoff=DEFAULT_CO2_CUTOFF;
 long experimentStart = 0, millisOffset = 0;
 char vignere_key[32] = ""; //Encryption key
 boolean offlineMode = false;
 
-#define MAX_UPDATE_SPEED 2000 //Read the sensor at most this often
 unsigned long loopTime = 0;
 
 ///Used for CO2 sensor
-byte readCO2[] = { 0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25 }; //Command packet to read Co2 (see app note)
+const byte readCO2[] = { 0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25 }; //Command packet to read Co2 (see app note)
 byte response[] = { 0, 0, 0, 0, 0, 0, 0 }; //create an array to store the response
 //multiplier for value. default is 1. set to 3 for K-30 3% and 10 for K-33 ICB
-int valMultiplier = 1;
+const int valMultiplier = 1;
 
 enum State { recording, error, no_experiment, uploading, done};
 
-State state = error;
+State state = error; //The state of our FSM
 
 void setup(void)
 {
@@ -253,32 +252,30 @@ void loop(void) {
       
       unsigned long valCO2 = getValue(response);
       
-      lcd_print_top("CO2 ppm: "); lcd.print(valCO2);
+      if(valCO2 <= 10000L && valCO2 > 0L) {
+        //If valCO2 is a legal value,
+        //  Record data & wait
+        
+        lcd_print_top("CO2 ppm: "); lcd.print(valCO2);
       
-      Serial.print(F("Recording data... CO2 ppm is: "));
-      Serial.println(valCO2);
+        Serial.print(F("Recording data... CO2 ppm is: "));
+        Serial.println(valCO2);
       
-      saveDatum(valCO2);
+        saveDatum(valCO2);
+        loopTime = millis();
+      } else {
+        lcd_print_top("Bad reading");
+        Serial.print(F("Bad reading: ")); Serial.println(valCO2);
+      }
       
 #ifdef INSTRUMENTED
   printTimeDiff(F("Read Data: "));
 #endif
 
-
-      loopTime = millis();
-      
-      
-      for(int i=0; i<10 && (valCO2 > 10000 || valCO2 < 200); i++) {
-        Serial.println(K_30_Serial.available());
-        Serial.println(sendRequest(readCO2));
-        valCO2 = getValue(response);
-        Serial.println(valCO2);
-      }
-
-
 #ifdef REALTIME_UPLOAD
       state = uploading;
 #endif
+
       if(offlineMode) {
         lcd_print_bottom("Offline Mode");
       } else {

@@ -405,17 +405,19 @@ void lcd_print_bottom(char* string) {
 //// CO2 sensor functions ////
 //////////////////////////////
 
-boolean sendRequest(byte packet[]) {
+boolean sendRequest(const byte packet[]) {
   int time = 0;
     while (!K_30_Serial.available()) //keep sending request until we start to get a response
     {        
         wdt_reset();
         if (time > 5000) //if it takes too long there was probably an error
-                {
-                Serial.println("Could not send request to sensor!");
-                return false;
-            }
+        {
+          Serial.println("Could not send request to sensor!");
+          return false;
+        }
+        noInterrupts();
         K_30_Serial.write(readCO2, 7);
+        interrupts();
         time += 50;
         delay(50);
     }

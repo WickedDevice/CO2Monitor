@@ -3,19 +3,20 @@
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
 //IP address of the server:
+/*
 #define HOST "192.168.1.2"
 #define IP_0 192
 #define IP_1 168
 #define IP_2 1
 #define IP_3 2
+*/
 
-/*
 #define HOST "107.170.187.156"
 #define IP_0 107
 #define IP_1 170
 #define IP_2 187
 #define IP_3 156
-*/
+
 
 /*
 #define HOST "162.243.18.121"
@@ -24,7 +25,7 @@
 #define IP_2 18
 #define IP_3 121
 */
-#define LISTEN_PORT           3000    // What TCP port to listen on for connections.
+#define LISTEN_PORT           80    // What TCP port to listen on for connections.
 
 #define K_30_Serial Serial1
 
@@ -47,6 +48,8 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
 #define DEFAULT_CO2_CUTOFF 2000    //when an offline experiment dips below this ppm of CO2, recording stops
 
 #define WDT_WAIT WDTO_8S            //Amount of time the watch dog timer waits before restarting the WildFire
+
+#define MAX_UPDATE_SPEED 2000   //Read the sensor at most this often
 LiquidCrystal lcd(A1, A2, A3, A4, A5, A6); //Pins attached to the LCD display.
 //  http://arduino.cc/en/Tutorial/LiquidCrystal
 
