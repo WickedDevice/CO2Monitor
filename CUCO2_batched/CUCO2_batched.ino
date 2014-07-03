@@ -80,7 +80,7 @@ void setup(void)
   //Initializing from nonvolatile memory
   if(!validEncryptionKey()) {
     Serial.println(F("\nInvalid encryption key"));
-    while(true) {
+    while(!Serial.available()) {
       lcd_print_top("No encryption");
       lcd_print_bottom("key");
       delay(1000);
@@ -88,8 +88,10 @@ void setup(void)
       lcd_print_bottom("Wicked Device");
       delay(1000);
     }
+    configure();
   } else if (!validMemory()) {
     Serial.println(F("EEPROM has incorrect data"));
+    Serial.println(F("Clearing data"));
     lcd_print_top("Invalid records..."); lcd_print_bottom("Clearing data");
     clearData();
     lcd_print_bottom("Please restart");
