@@ -42,7 +42,7 @@ Smart Config
 	Pull out your smartphone, startup Texas Instrument's CC3000 SmartConfig app, put in whatever details you need, and press "Start".
 	2. If the connection is successful, the lcd will display `Connected` and `Requesting DHCP` after a few seconds.
 * If there is no Wifi connection nearby:
-	*This is broken! Offline mode will work (ironically) only when you can connect to a network.*
+	**This is broken! Offline mode will work (ironically) only when you can connect to a network.**
 	1. Wait for the countdown to end
 	2. Press and hold the button while the lcd display is showing `Reconnecting`
 * To reconnect to an old network, wait for the countdown to end.
