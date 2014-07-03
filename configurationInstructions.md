@@ -6,10 +6,10 @@
 
 * Open up a serial monitor in the Arduino IDE
 
-* Make sure the serial monitor's type is 'Newline' (bottom right corner of the window)
+* Make sure the serial monitor's type is 'Newline' (bottom right corner of the window) and the baud rate is 115200.
 
 * Type something into the serial monitor just as the WildFire is starting
-	(If the LCD isn't displaying 'Push button for Smart Config', it has been too long)
+	(If the LCD isn't displaying `Push button for Smart Config` or `No encryption key` -> `Contact Wicked Device`, it has been too long)
 
 * Wait for the device's Mac Address to appear on the serial output
 
@@ -20,12 +20,12 @@
 * The WildFire will ask for an encryption key. Ignore it for now.
 
 * Navigate to the CUCO2 website
-	( http://107.170.187.156 )
+	( https://aerosense.cc )
 
 * Login as an admin
 
 * Navigate to the 'Create new sensor' form
-	('Sensors' -> 'Create new sensor' link at bottom of table)
+	('Sensors' -> 'Create new sensor' link at the bottom of the table)
 
 * Enter in appropriate information into the form
 	Copy the Mac address from the serial monitor to the website

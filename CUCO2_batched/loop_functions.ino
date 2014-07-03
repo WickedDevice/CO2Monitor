@@ -226,6 +226,7 @@ boolean sendPacket() {
       //Fail
       lcd_print_top("No connection");
       Serial.println(F("Connection failed"));
+      delay(500);
       return false;
     }
 }

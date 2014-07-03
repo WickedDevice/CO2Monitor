@@ -249,7 +249,7 @@ void loop(void) {
         lcd_print_top("Check sensor");
         lcd_print_bottom("connection");
         Serial.println(F("Check sensor connection"));
-        state = error;
+        delay(100);
         break;
       }
       
@@ -342,12 +342,12 @@ void loop(void) {
       break;
     }/////end error /////
     
-    case done: {
+    case done: { //Upload finished, do some cleanup before searching for new experiment
       wdt_reset();
       
-      Serial.print(F("Experiment complete."));
+      Serial.print(F("Upload complete."));
       
-      lcd_print_top("Experiment");lcd_print_bottom("complete");
+      lcd_print_top("Upload");lcd_print_bottom("complete");
       
       //Client should have been closed in SendPacket
       /*
