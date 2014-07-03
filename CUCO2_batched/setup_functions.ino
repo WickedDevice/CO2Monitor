@@ -266,7 +266,6 @@ void setEncryptionKeyBySerial() {
   Serial.println(F("Is this OK? y/n"));
   while(!Serial.available()){}
   c = Serial.read();
-  Serial.read(); //Getting rid of newline
   if(c == 'Y' || c == 'y') {
     wdt_enable(WDT_WAIT);
     setEncryptionKey(buffer);

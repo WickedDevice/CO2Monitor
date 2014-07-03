@@ -10,7 +10,7 @@
 #define IP_2 1
 #define IP_3 2
 */
-
+//Change so it isn't hard coded
 #define HOST "107.170.187.156"
 #define IP_0 107
 #define IP_1 170

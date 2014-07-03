@@ -58,7 +58,7 @@ State state = error; //The state of our FSM
 void setup(void)
 {
   Serial.begin(115200);
-  Serial.println(F("Programmed on " __DATE__ ", " __TIME__));
+  Serial.println(F("Compiled on " __DATE__ ", " __TIME__));
   Serial.println(F("Server is " HOST));
   
   lcd.begin(16,2);
@@ -240,8 +240,9 @@ void loop(void) {
     case recording: {
 
       if(millis() - loopTime < MAX_UPDATE_SPEED) {
-        //If we read data in the past MAX_UPDATE_SPEED, delay
-        delay(MAX_UPDATE_SPEED + loopTime - millis());
+        //If we read data in the last MAX_UPDATE_SPEED, delay
+        break;
+        //delay(MAX_UPDATE_SPEED + loopTime - millis());
       }
       
       if(!sendRequest(readCO2)) {
@@ -314,9 +315,9 @@ void loop(void) {
       
       if(!hasMoreData()) {
         if(experimentEnded() || outOfSpace() ) {
-          state = done;
+          state = done; //Clear data
         } else {
-          state = no_experiment; // If someone pushed the button, it will stop recording anyway
+          state = no_experiment; // If someone pushed the button, it will stop recording if neede
         }
         break;
       }
@@ -326,6 +327,9 @@ void loop(void) {
       if(sendPacket()) {
         dataSent();
       } else {
+        lcd_print_top("Upload failed");
+        lcd_print_bottom("Retrying");
+        delay(1000);
         Serial.println(F("SHOULD Reconnect and try again..."));
         prevDataNotSent();
       }
