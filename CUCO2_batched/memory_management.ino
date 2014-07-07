@@ -21,14 +21,14 @@
 #define MAGIC_NUM_VAL 'D'                               // 'Magic number' that tells if the eeprom has been compromised/overwritten
 
 #define EXPERIMENT_PTR ((uint16_t *) MAGIC_NUM_LOC+1)
-#define SAVE_PTR (EXPERIMENT_PTR + 1)                   // Where the number of saved datapoints is kept
-#define SENT_PTR (SAVE_PTR + 1)                         // Where the number of sent values is kept
+#define SENT_PTR (EXPERIMENT_PTR + 1)                   // Where the number of sent values is kept
 
 #define SAVE_START (SENT_PTR + sizeof(void *))          // Where the saved data begins
 #define SAVE_END (SAVE_START + (SAVE_SPACE * sizeof(long int))) //and where it ends
 
+#define ILLEGAL_VALUE 65535 //UINT16_MAX, but isn't defined in the Arduino IDE
+
 //Gets the number of saved or sent datapoints.
-#define SAVED() eeprom_read_word(SAVE_PTR)
 #define SENT() eeprom_read_word(SENT_PTR)
 
 #define RECORD_SIZE (sizeof(long int) + sizeof(int))  //size of a single record
@@ -39,7 +39,20 @@
 
 uint16_t dataRead = SENT();
 
+uint16_t savedCounter = 0; //number of values aready saved in EEPROM (access this through the savedValues function)
+
+boolean invalidMemory = false;
+
 ///// Functions
+
+//Gets the number of values already saved in EEPROM
+inline uint16_t savedValues() {
+  //Uses memoization
+  
+  while(eeprom_read_word(PPM_AT(savedCounter)) == ILLEGAL_VALUE)
+    { savedCounter++; }
+  return savedCounter;
+}
 
 boolean saveDatum(unsigned int valCO2) {
   //Saves data to array, eeprom, or memory
@@ -47,7 +60,7 @@ boolean saveDatum(unsigned int valCO2) {
     return false;
   }
   
-  uint16_t saved = SAVED();
+  uint16_t saved = savedValues();
   
   unsigned long time = experimentSeconds();
   
@@ -56,13 +69,20 @@ boolean saveDatum(unsigned int valCO2) {
   eeprom_write_dword(TIME_AT(saved), time);
   
   //Update save value
-  eeprom_write_word( SAVE_PTR, saved+1 );
+  eeprom_write_word( PPM_AT(saved+1), ILLEGAL_VALUE );
+  
+  //Verify that it was written properly
+  if( eeprom_read_word(   PPM_AT(saved)) != valCO2
+   || eeprom_read_dword( TIME_AT(saved)) != time
+   || eeprom_read_word( PPM_AT(saved+1)) != ILLEGAL_VALUE) {
+     invalidMemory = true;
+   }
   
   return true;
 }
 
 boolean outOfSpace(void) {
-  uint16_t saved = SAVED();
+  uint16_t saved = savedValues();
   
   if( saved >= SAVE_SPACE) {
     Serial.println(F("Out of space"));
@@ -74,14 +94,14 @@ boolean outOfSpace(void) {
 
 boolean hasMoreData(void) {
   //Determines whether there are more data to send
-  uint16_t saved = SAVED();
+  uint16_t saved = savedValues();
   
   return (saved > dataRead ? true : false);
 }
 
 
 int mostRecentDataAvg(int numToAverage = 5) {
-  uint16_t saved = SAVED();
+  uint16_t saved = savedValues();
   numToAverage = (numToAverage > saved) ? saved : numToAverage;
   
   unsigned long sum = 0;
@@ -111,20 +131,30 @@ void prevDataNotSent() {
 
 void dataSent() {
   eeprom_write_word(SENT_PTR, dataRead);
+  
+  if(eeprom_read_word(SENT_PTR) != dataRead)
+  {  invalidMemory = true; }
 }
 
 //'deletes' all data from eeprom & reconfigures memory.
 void clearData() {
   eeprom_write_word( SENT_PTR, 0);
-  eeprom_write_word(SAVE_PTR, 0);
+  eeprom_write_word( PPM_AT(0), ILLEGAL_VALUE); //'removing' the saved data
   eeprom_write_byte( MAGIC_NUM_LOC, MAGIC_NUM_VAL);
   dataRead = SENT();//0
   setExperimentId(0);
+  
+  //Verify newly written memory
+  if( eeprom_read_word( SENT_PTR ) != 0
+   || eeprom_read_word(PPM_AT(0)) != ILLEGAL_VALUE
+   || eeprom_read_byte(MAGIC_NUM_LOC) != MAGIC_NUM_VAL) {
+     invalidMemory = true;
+  }
 }
 
 
 boolean validMemory() {
-  return eeprom_read_byte(MAGIC_NUM_LOC) == MAGIC_NUM_VAL;
+  return eeprom_read_byte(MAGIC_NUM_LOC) == MAGIC_NUM_VAL && !invalidMemory;
 }
 
 int getExperimentId() {
@@ -132,6 +162,10 @@ int getExperimentId() {
 }
 void setExperimentId(int experiment_id) {
   eeprom_write_word(EXPERIMENT_PTR, (uint16_t) experiment_id);
+  
+  //Verify newly written memory
+  if(eeprom_read_word(EXPERIMENT_PTR) != (uint16_t) experiment_id)
+  {  invalidMemory = true; }
 }
 
 
@@ -154,8 +188,19 @@ void setEncryptionKey(char *key) {
   int i;
   for(i = 0; i < keyLength; i++) {
     eeprom_write_byte(ENCRYPTION_KEY_PTR + i, key[i]);
+    
+    if(eeprom_read_byte(ENCRYPTION_KEY_PTR+i) != key[i]) {
+      //Validate newly set byte
+      invalidMemory = true;
+    }
   }
   eeprom_write_byte(ENCRYPTION_KEY_PTR + i, '\0');
   
   eeprom_write_byte(ENCRYPTION_MAGIC_NUM_LOC, MAGIC_NUM_VAL);
+  
+  //Validate '\0' && magic number
+  if( eeprom_read_byte(ENCRYPTION_KEY_PTR + i)   != '\0'
+   || eeprom_read_byte(ENCRYPTION_MAGIC_NUM_LOC) != MAGIC_NUM_VAL) {
+    invalidMemory = true;
+   }
 }

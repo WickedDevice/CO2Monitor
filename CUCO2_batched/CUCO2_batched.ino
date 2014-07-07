@@ -32,11 +32,11 @@ void wdt_init(void)
     return;
 }
 
-uint32_t ip = 0;
 WildFire_CC3000 cc3000;
 WildFire_CC3000_Client client;
 WildFire wf;
 
+uint32_t ip=0;
 char address[13] = "";//Mac address
 int experiment_id=0, CO2_cutoff=DEFAULT_CO2_CUTOFF;
 long experimentStart = 0, millisOffset = 0;
@@ -147,13 +147,9 @@ void setup(void)
   printTimeDiff(F("displayConnectionDetails:"));
 #endif
 
-  // Get the website IP & print it
-  ip = IP_3;
-  ip |= (((uint32_t) IP_2) << 8);
-  ip |= (((uint32_t) IP_1) << 16);
-  ip |= (((uint32_t) IP_0) << 24);
-
-   wdt_reset();
+  Serial.println(F("IP address:"));
+  cc3000.getHostByName(HOST, &ip);
+  wdt_reset();
   cc3000.printIPdotsRev(ip);
   Serial1.begin(9600);
   
@@ -195,6 +191,12 @@ void loop(void) {
 #endif
 
   wdt_reset();
+  
+  if(!validMemory()) {
+    state = error;
+    lcd_print_top("Corrupted memory");
+    lcd_print_bottom("Contact service");
+  }
   
   switch (state) {
     case no_experiment: {

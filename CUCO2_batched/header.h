@@ -2,29 +2,10 @@
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
-//IP address of the server:
-/*
-#define HOST "192.168.1.2"
-#define IP_0 192
-#define IP_1 168
-#define IP_2 1
-#define IP_3 2
-*/
-//Change so it isn't hard coded
-#define HOST "107.170.187.156"
-#define IP_0 107
-#define IP_1 170
-#define IP_2 187
-#define IP_3 156
+//Location of the server:
+//#define HOST "192.168.1.2"
+#define HOST "aerosense.cc"
 
-
-/*
-#define HOST "162.243.18.121"
-#define IP_0 162
-#define IP_1 243
-#define IP_2 18
-#define IP_3 121
-*/
 #define LISTEN_PORT           80    // What TCP port to listen on for connections.
 
 #define K_30_Serial Serial1
