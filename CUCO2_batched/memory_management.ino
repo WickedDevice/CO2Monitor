@@ -11,7 +11,7 @@
 
 ////// Macro definitions
 
-#define SAVE_SPACE 500                                  //Number of datapoints saved
+#define SAVE_SPACE 1000                                  //Number of datapoints saved
 
 #define ENCRYPTION_MAGIC_NUM_LOC ((byte *) 0)
 
