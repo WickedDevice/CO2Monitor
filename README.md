@@ -112,6 +112,7 @@ I'm not particularly attached to this layout, and it can be easily changed in `h
 
 Here is a more detailed view:
 (Pins are counter-clockwise starting from the barrel jack on the WildFire)
+
 Pin | Connection
 --- | ----------
 ior | none
