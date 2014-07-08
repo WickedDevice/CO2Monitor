@@ -1,9 +1,9 @@
-CO2 sensor firmware
-===================
+CO<sub>2</sub> sensor firmware
+==============================
 
 *Not complete*
 
-Firmware for a WildFire (V2) & K 30 CO2 sensor to interact with [this rails server](https://github.com/WickedDevice/CUCO2_Website)
+Firmware for a WildFire & K-30 CO<sub>2</sub> sensor to interact with [this rails server](https://github.com/WickedDevice/CUCO2_Website)
 
 CUCO2_batched is the current version of the WildFire sketch.
 
@@ -113,7 +113,7 @@ Hardware
 Wiring
 ------
 
-At the moment, the LCD display is connected to pins A1 to A6, the the K_30 sensor is connected to D2 and D3, and the button is connected to D5.
+At the moment, the LCD display is connected to pins A1 to A6, the the K-30 sensor is connected to D2 and D3, and the button is connected to D5.
 
 If you're using a WildFire V3, you'll need to remove R16 (the resitor), or Serial1's receive pin won't work. This is because pin D2 doubles as an interrupt pin and is used by the RFM69.
 

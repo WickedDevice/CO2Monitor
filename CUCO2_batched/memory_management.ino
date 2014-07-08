@@ -12,7 +12,7 @@
 ////// Macro definitions
 
 #define SAVE_SPACE 600                                  //Number of datapoints that can be saved
-   //Each datapoint takes up 6 bytes. 4096 / 6 = 682.666. Bottom 60 or so bytes are used for other information
+   //Each datapoint takes up 6 bytes. 4096 / 6 = 682.666. First 60 or so bytes are used for other information
 
 
 #define ENCRYPTION_MAGIC_NUM_LOC ((byte *) 0)

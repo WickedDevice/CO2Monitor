@@ -1,4 +1,6 @@
-#Configuring the CO2 sensor sketch:
+#Configuring the CO<sub>2</sub> sensor sketch:
+
+*Note: If you're using a fully populated WildFire V3, you'll need to remove R16, or else the K-30 sensor won't be able to communicate with the WildFire*
 
 ##Encryption key & Mac Address Configuration:
 
