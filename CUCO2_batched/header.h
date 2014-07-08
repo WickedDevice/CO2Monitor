@@ -29,6 +29,8 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
                                     //Note: Button is pushed when low
 #define BUTTON_PUSHED ((PIND & _BV(5)) == 0) //faster than: (!digitalRead(BUTTON))
 
+#define MEM_SWITCH 6                 //Pin that the memory reset switch is attached to
+#define MEM_RESET_PUSHED (BUTTON_PUSHED && !digitalRead(MEM_SWITCH))
 
 #define DEFAULT_CO2_CUTOFF 2000    //when an offline experiment dips below this ppm of CO2, recording stops
 
@@ -47,4 +49,10 @@ LiquidCrystal lcd(A1, A2, A3, A4, A5, A6); //Pins attached to the LCD display.
 //If this is defined, the device attempts to send realtime data as it is collected
 //#define REALTIME_UPLOAD
 
+/*
+#if WILDFIRE_VERSION == 2
+#elif WILDFIRE_VERSION == 3
+#else
+#endif
+*/
 

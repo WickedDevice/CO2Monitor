@@ -34,7 +34,7 @@ Smart Config
 
 * If it isn't displaying the countdown something has gone wrong.
 	* If the LCD panel is showing `Invalid records...`, wait for it to finish clearing data, and then restart your device. It should behave normally after that.
-	* If it has `No Encryption Key`, contact Wicked Device. If you are Wicked Device, plug the WildFire into a Serial Monitor & follow the instructions in the [configurationInstructions.md](./configurationInstructions.md) file.
+	* If the LCD shows `No Encryption Key`, contact Wicked Device. If you are Wicked Device, plug the WildFire into a Serial Monitor & follow the instructions in the [configurationInstructions.md](./configurationInstructions.md) file.
 
 ### Connecting to Wifi (or choosing not to)
 * If you want the WildFire to connect to a different network than it did last time, push the button.
@@ -55,9 +55,8 @@ At this point, if the WildFire finds that it has old data, it will attempt to up
 
 ### Starting an experiment
 Unless the WildFire is in Offline Mode, the LCD should display `Querying server    Hold to skip`.
-	* Holding the button down will cause the sensor to engage offline mode and begin collecting CO<sub>2</sub> readings.
-	* If the WildFire restarts after this step, your Wifi network may not be connected to the internet.
-
+* Holding the button down will cause the sensor to engage offline mode and begin collecting CO<sub>2</sub> readings.
+* If the WildFire restarts after this step, your Wifi network may not be connected to the internet.
 * If the LCD panel displays `No Experiment Found` before querying the server again, make sure you've setup and started an experiment on the website & selected this sensor.
 
 Otherwise, the WildFire will pull down your information from the server & start the experiment.
@@ -86,6 +85,14 @@ If it only displays `Upload failed    Retrying` it will have failed for some oth
 ### Complete
 When uploading has finished, the LCD will show `Upload complete`. The WildFire will clear all the data read, and query the server to see if there is a new experiment waiting for it.
 
+### Reseting memory
+To clear all recorded data, flip the memory reset switch and push down the button during any of the following steps:
+* While the `Push button for Smart Config` message is displayed
+* While data is being recorded
+* When offline mode has just begun, and the LCD displays `Old Data found   Aborted`
+* In offline mode, after recording has ended and the LCD is displaying `Restart sensor  to upload`
+The WildFire should just restart itself a second after clearing memory.
+
 
 ### Troubleshooting
 
@@ -106,9 +113,11 @@ Hardware
 Wiring
 ------
 
-At the moment, the LCD display is connected to pins A1 to A6, the the K_30 sensor is connected to D2 and D3, and the button is connected to D5. I'm using a WildFire V2.
+At the moment, the LCD display is connected to pins A1 to A6, the the K_30 sensor is connected to D2 and D3, and the button is connected to D5.
 
-I'm not particularly attached to this layout, and it can be easily changed in `header.h`
+If you're using a WildFire V3, you'll need to remove R16 (the resitor), or Serial1's receive pin won't work. This is because pin D2 doubles as an interrupt pin and is used by the RFM69.
+
+I'm not particularly attached to this layout, and it can be easily changed in `header.h`. Sadly, the pin the button is connected to has some other dependencies, so you'll need to change those too if you move it.
 
 Here is a more detailed view:
 (Pins are counter-clockwise starting from the barrel jack on the WildFire)

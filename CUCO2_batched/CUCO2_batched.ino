@@ -75,7 +75,7 @@ void setup(void)
   
   wf.begin();
   pinMode(BUTTON, INPUT_PULLUP);
-  
+  pinMode(MEM_SWITCH, INPUT_PULLUP);
   
   K_30_Serial.begin(9600);
   //lcd_print_top("Began WildFire");
@@ -124,7 +124,6 @@ void setup(void)
         if(hasMoreData()) {
           lcd_print_top("Old Data found");
           lcd_print_bottom("Aborted");
-          //TODO: make this nicer
           Serial.println(F("\nData from last reboot found.\nCannot collect more data before uploading."));
           state = error;
           return;
@@ -292,7 +291,12 @@ void loop(void) {
         Serial.println(F("Recording data... Push button to force upload."));
       }
       
-      if(BUTTON_PUSHED && hasMoreData()) {
+      if(MEM_RESET_PUSHED) {
+        clearData();
+        lcd_print_top("Memory cleared");
+        delay(1000);
+        soft_reset();
+      } else if(BUTTON_PUSHED && hasMoreData()) {
         lcd_print_top("Button pushed");
         Serial.println(F("Interrupted recording early."));
         state = uploading;
@@ -314,17 +318,17 @@ void loop(void) {
         lcd_print_bottom("Offline mode");
         delay(1000);
         lcd_print_top("Restart sensor");
-        lcd_print_bottom("To upload");
+        lcd_print_bottom("to upload");
         state = error;
         break;
       }
       
       if(!hasMoreData()) {
-        if(experimentEnded() || outOfSpace() ) {
-          state = done; //Clear data
-        } else {
-          state = no_experiment; // If someone pushed the button, it will stop recording if needed
-        }
+#ifdef REALTIME_UPLOAD
+        state = (experimentEnded() || outOfSpace()) ? done : recording;
+#else
+        state = done; //erase data & query server again
+#endif
         break;
       }
 
@@ -355,7 +359,13 @@ void loop(void) {
     }//End uploading
     
     case error: {
-      delay(1000);
+      if(MEM_RESET_PUSHED) {
+        clearData();
+        lcd_print_top("Memory Cleared");
+        delay(1000);
+        soft_reset();
+      }
+      delay(50);
       break;
     }/////end error /////
     

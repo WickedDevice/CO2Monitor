@@ -34,7 +34,12 @@ boolean attemptSmartConfig(void) {
       lcd.print((time % 1000) / 100);
     }
     
-    if (BUTTON_PUSHED) {
+    if(MEM_RESET_PUSHED) {
+      clearData();
+      lcd_print_top("Memory Cleared");
+      delay(1000);
+      soft_reset();
+    } else if (BUTTON_PUSHED) {
       return true;
     }
     else {
@@ -108,7 +113,7 @@ boolean attemptSmartConfigReconnect(void){
     delay(100);
     time += 100;
     petWDT();
-    if(BUTTON_PUSHED) { //Skip to offline mode
+    if(BUTTON_PUSHED || offlineMode) { //Skip to offline mode
       return false;
     } else if (time > 10000) { //Timeout
       Serial.println(F("DHCP failed!"));

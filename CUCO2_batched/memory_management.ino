@@ -11,7 +11,9 @@
 
 ////// Macro definitions
 
-#define SAVE_SPACE 1000                                  //Number of datapoints that can be saved
+#define SAVE_SPACE 600                                  //Number of datapoints that can be saved
+   //Each datapoint takes up 6 bytes. 4096 / 6 = 682.666. Bottom 60 or so bytes are used for other information
+
 
 #define ENCRYPTION_MAGIC_NUM_LOC ((byte *) 0)
 
@@ -146,6 +148,7 @@ void dataSent() {
 
 //'deletes' all data from eeprom & reconfigures memory.
 void clearData() {
+  eeprom_write_byte( MAGIC_NUM_LOC, '\0');//make memory invalid until this is fixed
   eeprom_write_word( SENT_PTR, 0);
   eeprom_write_word( PPM_AT(0), ILLEGAL_VALUE); //'removing' the saved data
   eeprom_write_byte( MAGIC_NUM_LOC, MAGIC_NUM_VAL);

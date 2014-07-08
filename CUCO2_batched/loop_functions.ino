@@ -283,8 +283,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
         break;
       }
     }
-    
-    
+
     if(i >= 5 && !strcmp("start", serverReply+i-5)) {
       break;
     }
@@ -402,6 +401,7 @@ void petWDT() {
 #ifndef INSTRUMENTED
   if(lastWDTPet + (MIN_WDT_PET *1.2) <= millis()) {
     tinyWDT.pet();
+    lastWDTPet = millis();
   }
 #endif
 }
