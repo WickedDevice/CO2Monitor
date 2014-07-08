@@ -22,9 +22,13 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
 
 #define SMARTCONFIG_WAIT 4000       //Time to wait before attempting to reconnect (milliseconds)
 
+
+//Give this some thought before changing this.
+//initialiseInterrupt and removeInterrupt will have to change.
 #define BUTTON 5                    //Pin that the button is attached to
                                     //Note: Button is pushed when low
-#define BUTTON_PUSHED (!digitalRead(BUTTON))
+#define BUTTON_PUSHED ((PIND & _BV(5)) == 0) //faster than: (!digitalRead(BUTTON))
+
 
 #define DEFAULT_CO2_CUTOFF 2000    //when an offline experiment dips below this ppm of CO2, recording stops
 
