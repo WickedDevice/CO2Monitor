@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <WildFire.h>
 #include <LiquidCrystal.h>
+#include <TinyWatchdog.h>
+
+TinyWatchdog tinyWDT;
 
 #include "header.h"
 
@@ -66,7 +69,8 @@ void setup(void)
   Serial.println(F("wdt disabled"));
   printTimeDiff(F("Millis: "));
 #else
-  wdt_enable(WDT_WAIT);
+  //wdt_enable(WDT_WAIT);
+  tinyWDT.begin(MIN_WDT_PET, MAX_WDT_PET);
 #endif
   
   wf.begin();
@@ -113,7 +117,7 @@ void setup(void)
     Serial.println(F("Attempting to reconnect"));
     lcd_print_top("Reconnecting...");
     
-    wdt_reset();
+    petWDT();
     if(!attemptSmartConfigReconnect()){
       
       if(BUTTON_PUSHED || offlineMode) {
@@ -149,7 +153,7 @@ void setup(void)
 
   Serial.println(F("IP address:"));
   cc3000.getHostByName(HOST, &ip);
-  wdt_reset();
+  petWDT();
   cc3000.printIPdotsRev(ip);
   Serial1.begin(9600);
   
@@ -190,7 +194,7 @@ void loop(void) {
   printTimeDiff(F("Reached top of loop: "));
 #endif
 
-  wdt_reset();
+  petWDT();
   
   if(!validMemory()) {
     state = error;
@@ -285,7 +289,7 @@ void loop(void) {
         lcd_print_bottom("Offline Mode");
       } else {
         lcd_print_bottom("Hold to upload");
-        Serial.println("Recording data... Push button to force upload.");
+        Serial.println(F("Recording data... Push button to force upload."));
       }
       
       if(BUTTON_PUSHED && hasMoreData()) {
@@ -356,7 +360,7 @@ void loop(void) {
     }/////end error /////
     
     case done: { //Upload finished, do some cleanup before searching for new experiment
-      wdt_reset();
+      petWDT();
       
       Serial.print(F("Upload complete."));
       
@@ -383,7 +387,7 @@ void loop(void) {
     }/////end done //////
     
     default: {
-      Serial.println("Error: Undefined state!");
+      Serial.println(F("Error: Undefined state!"));
     }
   }
   return;

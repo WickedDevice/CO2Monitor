@@ -1,6 +1,12 @@
 #include <WildFire_CC3000.h>
 int mostRecentDataAvg(int numToAverage);
 
+uint16_t lastWDTPet = 0; //Millis since last watchdog timer pet
+void petWDT() {
+  if(lastWDTPet + (MIN_WDT_PET *1.2) <= millis()) {
+    tinyWDT.pet();
+  }
+}
 
 #ifdef INSTRUMENTED
 int millisSinceLast = 0; //Number of milliseconds since the last time printTimeDiff was called
@@ -91,14 +97,14 @@ int assemblePacket(void) {
     //Run encryption
     encrypt(data, vignere_key, data);
 
-    Serial.print("Outgoing data: "); Serial.println(data);
+    Serial.print(F("Outgoing data: ")); Serial.println(data);
 
     datalength = strlen(data);
 
     //Serial.print("Data length : ");
     //Serial.println(datalength);
 //    Serial.println();
-    wdt_reset();
+    petWDT();
    
     //Assembling header
     char putstr_buffer[64] = "POST /sensor_data/batch_create/";
@@ -144,9 +150,8 @@ int assemblePacket(void) {
 
 /* Contacts the server and sends a single packet of data collected. */
 boolean sendPacket() {
-  //Creates and sends a packet of data to the server containing CO2 results and timestamps
-  Serial.println(F("Sending data..."));
-  lcd_print_top("Sending data...");
+  //Sends an already created packet of data to the server containing CO2 results and timestamps
+
   
   client = cc3000.connectTCP(ip, LISTEN_PORT);
   
@@ -154,14 +159,14 @@ boolean sendPacket() {
   printTimeDiff(F("TCP connection established: "));
 #endif
     
-    wdt_reset();
+    petWDT();
     if (client.connected()) {
       //Send packet
 #ifdef INSTRUMENTED
   printTimeDiff(F("client.connected: "));
 #endif
 
-      wdt_reset();
+      petWDT();
       
       while(client.available()) { //flushing input buffer, just in case
         client.read();
@@ -171,13 +176,13 @@ boolean sendPacket() {
 
 #ifdef INSTRUMENTED
       printTimeDiff(F("Packet sent: "));
-      Serial.println("Outgoing request: ");
+      Serial.println(F("Outgoing request: "));
       Serial.println(packet_buffer);
       Serial.println();
  #endif
 
       Serial.println(F("Packet sent.\nWaiting for response."));
-      wdt_reset();
+      petWDT();
       
       int timeLeft = 5000;
       char headerBuffer[7] = {0,0,0,0,0,0,0};
@@ -201,7 +206,7 @@ boolean sendPacket() {
         
       } //End ignoring header
       
-      wdt_reset();
+      petWDT();
 
       if(client.read() != 'S') {
         Serial.println(F("Upload failed"));
@@ -234,7 +239,7 @@ boolean sendPacket() {
 /* Contacts the server, checks to see if there is an experiment, */
 void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   Serial.println(F("Connecting to server...\nIf this is the first time, it may take a while"));
-  wdt_reset();
+  petWDT();
   client = cc3000.connectTCP(ip, LISTEN_PORT);
   Serial.println(F("Connected"));
   int datalength = 0;
@@ -252,7 +257,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   
   strcat(packet_buffer, data);
   Serial.println(F("Sending request"));
-  wdt_reset();
+  petWDT();
   
 #ifdef INSTRUMENTED
   printTimeDiff(F("Request constructed: "));
@@ -266,7 +271,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
 #endif
 
   ///Receiving reply
-  wdt_reset();
+  petWDT();
   
   char serverReply[512] = "";
   
@@ -277,7 +282,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   while(client.connected() && i < 511) {
     while(client.available()) {
       Serial.print('*');
-      wdt_reset();
+      petWDT();
       serverReply[i] = (char)client.read();
       i++;
       serverReply[i] = '\0';
@@ -301,7 +306,7 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   while(client.connected() && i < 511){
     Serial.print('.');
     if(client.available()) {
-      wdt_reset();
+      petWDT();
       serverReply[i] = (char)client.read();
       i = (i == 0 && ( serverReply[0] == ' ' || serverReply[0] == '\n') ) ?  i : i+1;
     } else {
@@ -317,15 +322,14 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
 
 #ifdef INSTRUMENTED
   printTimeDiff(F("Body receivced: "));
-  Serial.println("\nPacket to server:");
+  Serial.println(F("\nPacket to server:"));
   Serial.println(packet_buffer);
-  Serial.println("ServerReply:");
+  Serial.println(F("ServerReply:"));
   Serial.println(serverReply);
 #endif
   
   //Decoding server reply
-  Serial.print("\nserverReply[0]: "); Serial.println((int)serverReply[0]);
-  Serial.println("ServerReply:");
+  Serial.println(F("ServerReply:"));
   Serial.println(serverReply);
   decrypt(serverReply, vignere_key, serverReply);
   Serial.println(serverReply);
@@ -353,9 +357,13 @@ void checkForExperiment(int &experiment_id, int &CO2_cutoff) {
   printTimeDiff(F("Body parsed: "));
 #endif
 
-  Serial.print("Time: ");Serial.println(time);
-  Serial.print("Experiment id: "); Serial.println(experiment_id);
-  Serial.print("CO2 cutoff: "); Serial.println(CO2_cutoff);
+  Serial.print(F("Time: "));Serial.println(time);
+  if(experiment_id != 0) {
+    Serial.print(F("Experiment id: ")); Serial.println(experiment_id);
+  } else {
+    Serial.println(F("No experiment"));
+  }
+  Serial.print(F("CO2 cutoff: ")); Serial.println(CO2_cutoff);
   
   client.close();
 
@@ -405,15 +413,24 @@ void lcd_print_bottom(char* string) {
 //////////////////////////////
 //// CO2 sensor functions ////
 //////////////////////////////
+//Stubbing the functions with junk data:
+boolean sendRequest(const byte packet[]){
+  return true;
+}
+unsigned long getValue(byte packet[]) {
+  Serial.println("Dummy reading!!!!");
+  return 777;
+}
 
+/*
 boolean sendRequest(const byte packet[]) {
   int time = 0;
     while (!K_30_Serial.available()) //keep sending request until we start to get a response
     {        
-        wdt_reset();
+        petWDT();
         if (time > 5000) //if it takes too long there was probably an error
         {
-          Serial.println("Could not send request to sensor!");
+          Serial.println(F("Could not send request to sensor!"));
           return false;
         }
         noInterrupts();
@@ -427,7 +444,7 @@ boolean sendRequest(const byte packet[]) {
     while (K_30_Serial.available() < 7) //Wait to get a 7 byte response
     {
         
-        wdt_reset();
+        petWDT();
         if (time > 5000) //if it takes to long there was probably an error
         {
             Serial.println(F("Could not get response from sensor!"));
@@ -440,7 +457,7 @@ boolean sendRequest(const byte packet[]) {
         delay(50);
     }
     for (int i = 0; i < 7; i++) {
-        wdt_reset();
+        petWDT();
         response[i] = K_30_Serial.read();
     }
     return true;
@@ -454,3 +471,4 @@ unsigned long getValue(byte packet[]) {
     val |= low;
     return (unsigned long) val * valMultiplier;
 }
+*/

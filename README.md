@@ -42,9 +42,9 @@ Smart Config
 	Pull out your smartphone, startup Texas Instrument's CC3000 SmartConfig app, put in whatever details you need, and press "Start".
 	2. If the connection is successful, the LCD will display `Connected` and `Requesting DHCP` after a few seconds.
 * If there is no Wifi connection nearby:  
-	**This is broken! Offline mode will work (ironically) only when you can connect to a network.**
 	1. Wait for the countdown to end
 	2. Press and hold the button while the LCD display is showing `Reconnecting`
+	3. The LCD should show `Offline Mode Engaged`. Wait for up to 10 seconds, and the sensor should begin recording.
 * To reconnect to an old network, wait for the countdown to end.
 	1. The LCD display will say `Reconnecting...`
 		If this fails, then you probably need to push the  button in the previous step, restart your WildFire and try again.

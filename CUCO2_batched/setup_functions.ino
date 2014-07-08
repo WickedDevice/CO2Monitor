@@ -23,7 +23,7 @@ inline int printTimeDiffSmall(const __FlashStringHelper *label) {
 // if the user has a serial and types something, it will jump to 
 boolean attemptSmartConfig(void) {
   lcd_print_top("Push button for");
-  lcd_print_bottom("Smart Config. . ");
+  lcd_print_bottom("Smart Config  . ");
   int time = SMARTCONFIG_WAIT;
   while (time > 0) {
     //wait for a few seconds for user to select smartconfig
@@ -79,12 +79,19 @@ boolean attemptSmartConfigReconnect(void){
 #endif
   Serial.println(F("Warming up CC3000"));
   
+  //attachInterrupt(BUTTON_INTERRUPT, interruptForOfflineMode, LOW);
+  initialiseInterrupt();
+    
   if (!cc3000.begin(false, true))
   {
+    
+    removeInterrupt();
     Serial.println(F("Unable to re-connect!? Did you run the SmartConfigCreate"));
     Serial.println(F("sketch to store your connection details?"));
     return false;
   }
+  
+  removeInterrupt();
 #ifdef INSTRUMENTED
   printTimeDiffSmall(F("Reconnected: "));
 #endif
@@ -100,7 +107,7 @@ boolean attemptSmartConfigReconnect(void){
   while (!cc3000.checkDHCP()) {
     delay(100);
     time += 100;
-    wdt_reset();
+    petWDT();
     if(BUTTON_PUSHED) { //Skip to offline mode
       return false;
     } else if (time > 10000) { //Timeout
@@ -117,19 +124,49 @@ boolean attemptSmartConfigReconnect(void){
   return true;
 }
 
+
+int pcicr, pcmsk3;
+//Enable the interrupt for offline mode button push during reconnect phase.
+void initialiseInterrupt(){
+  cli();		// switch interrupts off while messing with their settings
+  pcicr = PCICR;
+  pcmsk3 = PCMSK3;
+  PCICR |=  _BV(PCIE3); // Enable PCINT29 interrupt
+  PCMSK3 |= _BV(PCINT29);
+  sei();		// turn interrupts back on
+}
+
+//Removes the interrupt for the button.
+void removeInterrupt() {
+  cli();
+  PCICR = pcicr;
+  PCMSK3 = pcmsk3;
+  sei();
+}
+
+//The interrupt for button pushing during 'reconnecting...'
+ISR(PCINT3_vect) {
+  if(BUTTON_PUSHED) {
+    lcd_print_top("Offline Mode");
+    lcd_print_bottom("Engaged");
+    offlineMode = true;
+    petWDT();
+    removeInterrupt();
+  }
+}
+
 boolean attemptSmartConfigCreate(void){
   /* Initialise the module, deleting any existing profile data (which */
   /* is the default behaviour)  */
-  wdt_reset();
+  petWDT();
   Serial.println(F("\nInitialising the CC3000 ..."));
   
   if (!cc3000.begin(false))
   {
-    Serial.println("Wifi chip failed");
+    Serial.println(F("Wifi chip failed"));
     return false;
   }
-  wdt_reset();
-  wdt_disable();
+  petWDT();
   /* Try to use the smart config app (no AES encryption), saving */
   /* the connection details if we succeed */
   Serial.println(F("Waiting for a SmartConfig connection (~60s) ..."));
@@ -143,8 +180,7 @@ boolean attemptSmartConfigCreate(void){
     Serial.println(F("SmartConfig failed"));
     return false;
   }
-  wdt_enable(WDTO_8S);
-  wdt_reset();
+  petWDT();
   Serial.println(F("Saved connection details and connected to AP!"));
   lcd.clear(); lcd_print_top("Connected"); 
   
@@ -156,7 +192,7 @@ boolean attemptSmartConfigCreate(void){
   {
     delay(100);
     time += 100;
-    wdt_reset();
+    petWDT();
     if (time > 20000) {
       time = 0;
       Serial.println(F("DHCP failed!"));
@@ -199,7 +235,7 @@ void configure() {
   wlan_start(0);
   Serial.println('.');
   
-  wdt_reset();
+  petWDT();
   uint8_t mac[6] = "";
   
   if(nvmem_get_mac_address(mac)) {
@@ -222,15 +258,15 @@ void configure() {
   } else {
     Serial.println(F("\nEncryption key not found, make a new one? y/n"));
   }
-  wdt_reset(); //I would disable the watch dog timer, but I don't want to be stuck here by accident
+  petWDT();
   
   while(!Serial.available()) { delay(100);}
   
-  wdt_reset();
+  petWDT();
   char yesNo = Serial.read();
   Serial.read(); //Get rid of newline
   if(yesNo == 'Y' || yesNo == 'y') {
-    wdt_reset();
+    petWDT();
     setEncryptionKeyBySerial();
   }
   
@@ -247,8 +283,6 @@ void setEncryptionKeyBySerial() {
   int index = 0;
   char c = ' ';  //' ' is an arbitrary value
   
-  wdt_disable();
-  
   while(c != '\n' && c != '\0') { //Until newline
     while(Serial.available()) {
       c = Serial.read();
@@ -259,21 +293,22 @@ void setEncryptionKeyBySerial() {
       buffer[index] = c;
       index++;
     }
+    petWDT();
+    delay(50);
   } //end while for Serial reading
   
   Serial.println(F("Your new encryption key is:"));
   Serial.println(buffer);
   Serial.println(F("Is this OK? y/n"));
-  while(!Serial.available()){}
+  while(!Serial.available()){delay(50);petWDT();}
   c = Serial.read();
   if(c == 'Y' || c == 'y') {
-    wdt_enable(WDT_WAIT);
     setEncryptionKey(buffer);
     Serial.println(F("Key saved."));
   } else {
+    delay(50);
     while(Serial.available())
     { Serial.read(); }
-    wdt_enable(WDT_WAIT);
     setEncryptionKeyBySerial();
   }
 }

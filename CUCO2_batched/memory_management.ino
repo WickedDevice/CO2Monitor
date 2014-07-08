@@ -69,8 +69,8 @@ boolean saveDatum(unsigned int valCO2) {
   unsigned long time = experimentSeconds();
   
   //Write to save location
-  Serial.print("Writing to EEPROM locations"); Serial.print((int)PPM_AT(saved));
-  Serial.print(" to "); Serial.println((int) PPM_AT(saved+1));
+  Serial.print(F("Writing to EEPROM locations ")); Serial.print((int)PPM_AT(saved));
+  Serial.print(F(" to ")); Serial.println((int) PPM_AT(saved+1));
   
   eeprom_write_word(PPM_AT(saved), valCO2);
   eeprom_write_dword(TIME_AT(saved), time);
