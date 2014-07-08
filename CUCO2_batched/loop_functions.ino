@@ -1,13 +1,6 @@
 #include <WildFire_CC3000.h>
 int mostRecentDataAvg(int numToAverage);
 
-uint16_t lastWDTPet = 0; //Millis since last watchdog timer pet
-void petWDT() {
-  if(lastWDTPet + (MIN_WDT_PET *1.2) <= millis()) {
-    tinyWDT.pet();
-  }
-}
-
 #ifdef INSTRUMENTED
 int millisSinceLast = 0; //Number of milliseconds since the last time printTimeDiff was called
 /* Prints the number of milliseconds that went by between this and the last time it was called */
@@ -397,6 +390,22 @@ void experimentCleanup() {
   clearData();
 }
 
+
+//////////////////////////////
+// Watchdog timer functions //
+//////////////////////////////
+
+uint16_t lastWDTPet = 0; //Millis since last watchdog timer pet
+
+//Pets the watchdog timer if it needs to be petted.
+void petWDT() {
+#ifndef INSTRUMENTED
+  if(lastWDTPet + (MIN_WDT_PET *1.2) <= millis()) {
+    tinyWDT.pet();
+  }
+#endif
+}
+
 //////////////////////////////
 //// LCD display functions ///
 //////////////////////////////
@@ -413,6 +422,8 @@ void lcd_print_bottom(char* string) {
 //////////////////////////////
 //// CO2 sensor functions ////
 //////////////////////////////
+
+/*
 //Stubbing the functions with junk data:
 boolean sendRequest(const byte packet[]){
   return true;
@@ -421,8 +432,8 @@ unsigned long getValue(byte packet[]) {
   Serial.println("Dummy reading!!!!");
   return 777;
 }
+*/
 
-/*
 boolean sendRequest(const byte packet[]) {
   int time = 0;
     while (!K_30_Serial.available()) //keep sending request until we start to get a response
@@ -471,4 +482,4 @@ unsigned long getValue(byte packet[]) {
     val |= low;
     return (unsigned long) val * valMultiplier;
 }
-*/
+

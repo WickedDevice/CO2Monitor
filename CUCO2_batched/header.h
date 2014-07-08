@@ -32,9 +32,9 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
 
 #define DEFAULT_CO2_CUTOFF 2000    //when an offline experiment dips below this ppm of CO2, recording stops
 
-//#define WDT_WAIT WDTO_8S            //Amount of time the watch dog timer waits before restarting the WildFire
-#define MIN_WDT_PET 1000
-#define MAX_WDT_PET 60000
+
+#define MIN_WDT_PET 1000   //Pets of the Watchdog timer have to be farther apart than this to register (millis)
+#define MAX_WDT_PET 60000  //Amount of time the watch dog timer waits before restarting the WildFire (millis)
 
 
 #define MAX_UPDATE_SPEED 2000   //Read the sensor at most this often

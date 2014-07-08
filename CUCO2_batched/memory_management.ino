@@ -11,7 +11,7 @@
 
 ////// Macro definitions
 
-#define SAVE_SPACE 1000                                  //Number of datapoints saved
+#define SAVE_SPACE 1000                                  //Number of datapoints that can be saved
 
 #define ENCRYPTION_MAGIC_NUM_LOC ((byte *) 0)
 
@@ -54,6 +54,7 @@ inline uint16_t savedValues() {
   return savedCounter;
 }
 
+//Returns a ratio: successfully sent datapoints / all saved datapoints
 float ratioSent() {
   return (float) SENT() /(float) savedValues();
 }
@@ -99,11 +100,10 @@ boolean outOfSpace(void) {
   }
 }
 
+
+//Determines whether there are more data to send
 boolean hasMoreData(void) {
-  //Determines whether there are more data to send
-  uint16_t saved = savedValues();
-  
-  return (saved > dataRead ? true : false);
+  return (savedValues() > dataRead ? true : false);
 }
 
 
@@ -119,8 +119,8 @@ int mostRecentDataAvg(int numToAverage = 5) {
   return sum / numToAverage;
 }
 
+//Gets the next datapoint
 void nextDatum(int &ppm, long &timestamp) {
-  //Gets the next datapoint
   
   ppm =       eeprom_read_word( PPM_AT( dataRead));
   timestamp = eeprom_read_dword(TIME_AT(dataRead));
@@ -130,12 +130,13 @@ void nextDatum(int &ppm, long &timestamp) {
   return;
 }
 
+//Allows (re)sending of data that has been read already
 void prevDataNotSent() {
-  //Allows sending of data that has been read already
   dataRead = SENT();
   return;
 }
 
+//Updates EEPROM to reflect that some data has been sent
 void dataSent() {
   eeprom_write_word(SENT_PTR, dataRead);
   
