@@ -15,9 +15,9 @@
 
 #define ENCRYPTION_MAGIC_NUM_LOC ((byte *) 0)
 
-#define ENCRYPTION_KEY_PTR ((byte *) ENCRYPTION_MAGIC_NUM_LOC+1)
+#define ENCRYPTION_KEY_PTR ((byte *) (ENCRYPTION_MAGIC_NUM_LOC+1))
 
-#define MAGIC_NUM_LOC ((byte *) ENCRYPTION_KEY_PTR + 32)
+#define MAGIC_NUM_LOC ((byte *) (ENCRYPTION_KEY_PTR + 32))
 #define MAGIC_NUM_VAL 'D'                               // 'Magic number' that tells if the eeprom has been compromised/overwritten
 
 #define EXPERIMENT_PTR ((uint16_t *) MAGIC_NUM_LOC+1)
@@ -49,9 +49,13 @@ boolean invalidMemory = false;
 inline uint16_t savedValues() {
   //Uses memoization
   
-  while(eeprom_read_word(PPM_AT(savedCounter)) == ILLEGAL_VALUE)
+  while(eeprom_read_word(PPM_AT(savedCounter)) != ILLEGAL_VALUE)
     { savedCounter++; }
   return savedCounter;
+}
+
+float ratioSent() {
+  return (float) SENT() /(float) savedValues();
 }
 
 boolean saveDatum(unsigned int valCO2) {
@@ -65,6 +69,10 @@ boolean saveDatum(unsigned int valCO2) {
   unsigned long time = experimentSeconds();
   
   //Write to save location
+  Serial.print("PPM_AT(saved) = "); Serial.println((int)PPM_AT(saved));
+  Serial.print("TIME_AT(saved) = "); Serial.println((int)TIME_AT(saved));
+  Serial.print("PPM_AT(saved+1) = "); Serial.println((int) PPM_AT(saved+1));
+  
   eeprom_write_word(PPM_AT(saved), valCO2);
   eeprom_write_dword(TIME_AT(saved), time);
   
@@ -144,6 +152,8 @@ void clearData() {
   dataRead = SENT();//0
   setExperimentId(0);
   
+  savedCounter = 0;
+  
   //Verify newly written memory
   if( eeprom_read_word( SENT_PTR ) != 0
    || eeprom_read_word(PPM_AT(0)) != ILLEGAL_VALUE
@@ -154,7 +164,9 @@ void clearData() {
 
 
 boolean validMemory() {
-  return eeprom_read_byte(MAGIC_NUM_LOC) == MAGIC_NUM_VAL && !invalidMemory;
+  return eeprom_read_byte(MAGIC_NUM_LOC) == MAGIC_NUM_VAL
+      && eeprom_read_byte(ENCRYPTION_MAGIC_NUM_LOC) == MAGIC_NUM_VAL
+      && !invalidMemory;
 }
 
 int getExperimentId() {

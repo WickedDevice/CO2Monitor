@@ -41,7 +41,7 @@ char address[13] = "";//Mac address
 int experiment_id=0, CO2_cutoff=DEFAULT_CO2_CUTOFF;
 long experimentStart = 0, millisOffset = 0;
 char vignere_key[32] = ""; //Encryption key
-boolean offlineMode = false;
+volatile boolean offlineMode = false;
 
 unsigned long loopTime = 0;
 
@@ -116,7 +116,7 @@ void setup(void)
     wdt_reset();
     if(!attemptSmartConfigReconnect()){
       
-      if(BUTTON_PUSHED) {
+      if(BUTTON_PUSHED || offlineMode) {
         if(hasMoreData()) {
           lcd_print_top("Old Data found");
           lcd_print_bottom("Aborted");
@@ -184,7 +184,7 @@ void setup(void)
   
 } /////end setup /////
 
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void loop(void) {
 #ifdef INSTRUMENTED
   printTimeDiff(F("Reached top of loop: "));
@@ -319,21 +319,32 @@ void loop(void) {
         if(experimentEnded() || outOfSpace() ) {
           state = done; //Clear data
         } else {
-          state = no_experiment; // If someone pushed the button, it will stop recording if neede
+          state = no_experiment; // If someone pushed the button, it will stop recording if needed
         }
         break;
       }
 
       int dataInPacket = assemblePacket();
-
+      
+      Serial.println(F("Sending data..."));
+      lcd_print_top("Sending data...");
+      lcd_print_bottom("");
+      lcd.print((int) ratioSent()*100);
+      lcd.print("% done");
+      
+      
       if(sendPacket()) {
         dataSent();
       } else {
         lcd_print_top("Upload failed");
         lcd_print_bottom("Retrying");
         delay(1000);
-        Serial.println(F("SHOULD Reconnect and try again..."));
         prevDataNotSent();
+        
+        if(!cc3000.checkConnected()) {
+          //Restart if the Wifi connection stopped
+          soft_reset();
+        }
       }
       
       break;
