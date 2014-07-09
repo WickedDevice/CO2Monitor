@@ -130,27 +130,27 @@ boolean attemptSmartConfigReconnect(void){
 }
 
 
-int pcicr, pcmsk3;
+int pcicr, pcmsk;
 //Enable the interrupt for offline mode button push during reconnect phase.
 void initialiseInterrupt(){
   cli();		// switch interrupts off while messing with their settings
-  pcicr = PCICR;
-  pcmsk3 = PCMSK3;
-  PCICR |=  _BV(PCIE3); // Enable PCINT29 interrupt
-  PCMSK3 |= _BV(PCINT29);
+  
+  BUTTON_INIT_PCINT;
+
   sei();		// turn interrupts back on
 }
 
 //Removes the interrupt for the button.
 void removeInterrupt() {
   cli();
-  PCICR = pcicr;
-  PCMSK3 = pcmsk3;
+  
+  BUTTON_RESTORE_PCINT;
+  
   sei();
 }
 
 //The interrupt for button pushing during 'reconnecting...'
-ISR(PCINT3_vect) {
+ISR(BUTTON_INT_vect) {
   if(BUTTON_PUSHED) {
     lcd_print_top("Offline Mode");
     lcd_print_bottom("Engaged");

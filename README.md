@@ -122,44 +122,46 @@ I'm not particularly attached to this layout, and it can be easily changed in `h
 Here is a more detailed view:
 (Pins are counter-clockwise starting from the barrel jack on the WildFire)
 
-Pin | Connection
---- | ----------
-ior | none
-rst | none
-3v3 | none
-5v  | LCD Vcc, potentiometer power
-gnd | none
-gnd | LCD Vss & R/W, potentiometer ground, K-30 ground, button ground
-vin | none
-----|----
-A0  | none
-A1  | LCD RS
-A2  | LCD Enable
-A3  | LCD D4
-A4  | LCD D5
-A5  | LCD D6
-A6  | LCD D7
-A7  | none
-----|----
-RX  | none
-TX  | none
-D2  | K-30 TX
-D3  | K-30 RX
-D4  | none
-D5  | Button
-D6  | none
-D7  | none
-----|----
-D8  | none
-D9  | none
-D10 | none
-D11 | none
-D12 | none
-D13 | none
-gnd | none
-aref| none
-sda | none
-scl | none
+Pin | Connection with shield | Connection without shield
+--- | ---------------------- | -------------------------
+ior |                        |     
+rst |                        |     
+3v3 |                        |     
+5v  | LCD Vcc                | LCD Vcc, potentiometer power
+gnd | [\*](#ground-note)     | [\*](#ground-note)
+gnd | [\*](#ground-note)     | [\*](#ground-note)
+vin |                        |     
+----| ----                   | ----
+A0  | Button                 |     
+A1  | Memory clearing switch | LCD RS
+A2  | LCD Enable             | LCD Enable
+A3  | LCD RS                 | LCD D4
+A4  |                        | LCD D5
+A5  |                        | LCD D6
+A6  |                        | LCD D7
+A7  |                        |     
+----| ----                   | ----
+RX  |                        |     
+TX  |                        |     
+D2  | K-30 TX                | K-30 TX
+D3  | K-30 RX                | K-30 RX
+D4  | LCD D4                 |     
+D5  | LCD D5                 | Button
+D6  | LCD D6                 | Memory clearing switch
+D7  |                        |     
+----| ----                   | ----
+D8  | LCD D7                 |     
+D9  |                        |     
+D10 |                        |     
+D11 |                        |     
+D12 |                        |     
+D13 |                        |     
+gnd | [\*](#ground-note)     | [\*](#ground-note)
+aref|                        |     
+sda |                        |     
+scl |                        |     
+
+<a name="ground-note">\*</a> Ground is connected to: LCD Vss & R/W, potentiometer ground, K-30 ground, button ground, and Memory clearing switch ground
 
 The LCD, from left to right (facing the screen, pins on the bottom left):
 ```
