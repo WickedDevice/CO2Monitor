@@ -113,13 +113,11 @@ Hardware
 Wiring
 ------
 
-At the moment, the LCD display is connected to pins A1 to A6, the the K-30 sensor is connected to D2 and D3, and the button is connected to D5.
+In `header.h` there are two pin layouts defined: One for when the new Air Quality Egg shield is attached, and one without it. Which of these is selected is determined by whether `WITH_SHIELD` is `true` or `false`.
 
 If you're using a WildFire V3, you'll need to remove R16 (the resitor), or Serial1's receive pin won't work. This is because pin D2 doubles as an interrupt pin and is used by the RFM69.
 
-I'm not particularly attached to this layout, and it can be easily changed in `header.h`. Sadly, the pin the button is connected to has some other dependencies, so you'll need to change those too if you move it.
-
-Here is a more detailed view:
+Here are the pin connections, with and without the shield attached:
 (Pins are counter-clockwise starting from the barrel jack on the WildFire)
 
 Pin | Connection with shield | Connection without shield
@@ -127,7 +125,7 @@ Pin | Connection with shield | Connection without shield
 ior |                        |     
 rst |                        |     
 3v3 |                        |     
-5v  | LCD Vcc                | LCD Vcc, potentiometer power
+5v  | LCD Vcc, potentiometer power | LCD Vcc, potentiometer power
 gnd | [\*](#ground-note)     | [\*](#ground-note)
 gnd | [\*](#ground-note)     | [\*](#ground-note)
 vin |                        |     
