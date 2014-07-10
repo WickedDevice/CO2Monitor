@@ -17,8 +17,7 @@ long int experimentSeconds() {
   return (millis()-millisOffset)/1000L + experimentStart;
 }
 
-
-boolean justStarted = true; //Whether, during the experiment, the CO2 ppm has risen above the CO2_cutoff threshold
+extern boolean justStarted; //Whether, during the experiment, the CO2 ppm has risen above the CO2_cutoff threshold
 
 /* Returns whether the experiment has ended or not
     Currently determines this by checking to see if the CO2 ppm has risen past a threshold and fallen back down below it.
@@ -27,9 +26,15 @@ boolean experimentEnded() {
   
   int newAverage = mostRecentDataAvg(5);
   
+  //Serial.print("Just started (before change): "); Serial.println(justStarted);
+  
   justStarted = (CO2_cutoff <= newAverage) ? false : justStarted;
   
+  /*Serial.print("Just started: "); Serial.println(justStarted);
+  Serial.print("newAverage: ");   Serial.println(newAverage);
+  Serial.print("CO2_cutoff: "); Serial.println(CO2_cutoff);*/
   if(CO2_cutoff > newAverage && !justStarted) {
+    
     return true;
   } else {
     return false;
@@ -394,12 +399,12 @@ void experimentCleanup() {
 // Watchdog timer functions //
 //////////////////////////////
 
-uint16_t lastWDTPet = 0; //Millis since last watchdog timer pet
+uint32_t lastWDTPet = 0; //Millis since last watchdog timer pet
 
 //Pets the watchdog timer if it needs to be petted.
 void petWDT() {
 #ifndef INSTRUMENTED
-  if(lastWDTPet + (MIN_WDT_PET *1.2) <= millis()) {
+  if(lastWDTPet + (MIN_WDT_PET * 2) <= millis()) {
     tinyWDT.pet();
     lastWDTPet = millis();
   }

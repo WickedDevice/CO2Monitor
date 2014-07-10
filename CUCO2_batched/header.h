@@ -59,7 +59,7 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
   #define BUTTON_PUSHED      ((PINA & _BV(0)) == 0) //faster than: (!digitalRead(BUTTON))
   #define BUTTON_INT_vect    PCINT0_vect
   
-    //Pin Change Interupt control enabling & disabling for BUTTON
+    //Pin Change Interrupt control enabling & disabling for BUTTON
   #define BUTTON_INIT_PCINT do{\  
     pcicr = PCICR;\
     pcmsk = PCMSK0;\
@@ -80,7 +80,7 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
   #define BUTTON_PUSHED     ((PIND & _BV(5)) == 0) //faster than: (!digitalRead(BUTTON))
   #define BUTTON_INT_vect   PCINT3_vect
   
-    //Pin Change Interupt control enabling & disabling for BUTTON
+    //Pin Change Interrupt control enabling & disabling for BUTTON
   #define BUTTON_INIT_PCINT do{\  
     pcicr = PCICR;\
     pcmsk = PCMSK3;\
@@ -108,9 +108,13 @@ char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
 
 
 #if WILDFIRE_VERSION == 2
+#pragma message "Watch dog timer code needs fixing."
+#pragma message "If you're changing the max time without petting the timer to less than 10 seconds:"
+#pragma message "    you'll also need to fix SmartConfig reconnect to timeout in less than 10 seconds,"
+#pragma message "    or have it respond appropriately to the offlineMode interrupt"
 #elif WILDFIRE_VERSION == 3
 //Probably won't be displayed during compilation, sadly
-#pragma message "Make sure R16 is depopulated"
+#pragma message "Make sure that the RFM69 or R16 is depopulated"
 #else
 #endif
 

@@ -1,8 +1,6 @@
 CO<sub>2</sub> sensor firmware
 ==============================
 
-*Not complete*
-
 Firmware for a WildFire & K-30 CO<sub>2</sub> sensor to interact with [this rails server](https://github.com/WickedDevice/CUCO2_Website)
 
 CUCO2_batched is the current version of the WildFire sketch.
@@ -85,6 +83,8 @@ If it only displays `Upload failed    Retrying` it will have failed for some oth
 ### Complete
 When uploading has finished, the LCD will show `Upload complete`. The WildFire will clear all the data read, and query the server to see if there is a new experiment waiting for it.
 
+* If the WildFire has just finished uploading recordings from offline mode or it stopped recording because you pushed the button, after talking to the server, it will attempt to record data for the same experiment it just uploaded for.
+
 ### Reseting memory
 To clear all recorded data, flip the memory reset switch and push down the button during any of the following steps:
 * While the `Push button for Smart Config` message is displayed
@@ -103,7 +103,7 @@ The WildFire has trouble connecting to the internet if the battery is low, or (o
 
 Hardware
 --------
-* WickedDevice WildFire (V2 or V3)
+* WickedDevice WildFire (V3)
 * K-30 CO<sub>2</sub>sensor
 * 16x2 LCD display
 * 10K potentiometer

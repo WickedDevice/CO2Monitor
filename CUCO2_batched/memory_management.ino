@@ -11,9 +11,10 @@
 
 ////// Macro definitions
 
-#define SAVE_SPACE 600                                  //Number of datapoints that can be saved
-   //Each datapoint takes up 6 bytes. 4096 / 6 = 682.666. First 60 or so bytes are used for other information
+#define SAVE_SPACE 650                                //Number of datapoints that can be saved
+   //Each datapoint takes up 6 bytes. 4096 / 6 = 682.666. First 40 or so bytes are used for other information
 
+#define RECORD_SIZE (sizeof(long int) + sizeof(int))  //size of a single record
 
 #define ENCRYPTION_MAGIC_NUM_LOC ((byte *) 0)
 
@@ -22,22 +23,21 @@
 #define MAGIC_NUM_LOC ((byte *) (ENCRYPTION_KEY_PTR + 32))
 #define MAGIC_NUM_VAL 'D'                               // 'Magic number' that tells if the eeprom has been compromised/overwritten
 
-#define EXPERIMENT_PTR ((uint16_t *) MAGIC_NUM_LOC+1)
-#define SENT_PTR (EXPERIMENT_PTR + 1)                   // Where the number of sent values is kept
+#define EXPERIMENT_PTR ((uint16_t *) ((byte *)MAGIC_NUM_LOC + sizeof(byte)))
+#define SENT_PTR       ((uint16_t *) ((byte *)EXPERIMENT_PTR + sizeof(uint16_t)))// Where the number of sent values is kept
 
-#define SAVE_START (SENT_PTR + sizeof(void *))          // Where the saved data begins
-#define SAVE_END (SAVE_START + (SAVE_SPACE * sizeof(long int))) //and where it ends
+#define SAVE_START ((byte *)(SENT_PTR + 1))        // Where the saved data begins
 
 #define ILLEGAL_VALUE 65535 //UINT16_MAX, but isn't defined in the Arduino IDE
 
 //Gets the number of saved or sent datapoints.
 #define SENT() eeprom_read_word(SENT_PTR)
 
-#define RECORD_SIZE (sizeof(long int) + sizeof(int))  //size of a single record
-
 //Gets the nth record's ppm or time value's location (indexes at 0)
-#define PPM_AT(n)   ((uint16_t *)((n)*RECORD_SIZE + SAVE_START))
-#define TIME_AT(n)  ((uint32_t *)((n)*RECORD_SIZE + SAVE_START + sizeof(int)))
+#define PPM_AT(n)   ((uint16_t *) ( (( (uint16_t) n)*RECORD_SIZE) + SAVE_START) )
+#define TIME_AT(n)  ((uint32_t *) ( (( (uint16_t) n)*RECORD_SIZE) + SAVE_START + sizeof(int)) )
+
+#define SAVE_END (PPM_AT(SAVE_SPACE))//Where the last 2 bytes could be stored (terminating ILLEGAL_VALUE)
 
 uint16_t dataRead = SENT();
 
@@ -74,6 +74,7 @@ boolean saveDatum(unsigned int valCO2) {
   //Write to save location
   Serial.print(F("Writing to EEPROM locations ")); Serial.print((int)PPM_AT(saved));
   Serial.print(F(" to ")); Serial.println((int) PPM_AT(saved+1));
+  Serial.print(F("Saved ")); Serial.print(saved+1); Serial.println(F(" datapoints"));
   
   eeprom_write_word(PPM_AT(saved), valCO2);
   eeprom_write_dword(TIME_AT(saved), time);
@@ -111,6 +112,11 @@ boolean hasMoreData(void) {
 
 int mostRecentDataAvg(int numToAverage = 5) {
   uint16_t saved = savedValues();
+  
+  if(saved == 0) {
+    return 0;
+  }
+  
   numToAverage = (numToAverage > saved) ? saved : numToAverage;
   
   unsigned long sum = 0;
@@ -195,7 +201,10 @@ void getEncryptionKey(char *buffer) {
     c = eeprom_read_byte(ENCRYPTION_KEY_PTR + i);
     buffer[i] = c;
     i++;
-  } while(c != '\0');
+  } while(c != '\0' && i < 32);
+  
+  buffer[32] = '\0'; //Just to be safe.
+  
 }
 
 void setEncryptionKey(char *key) {
@@ -219,3 +228,4 @@ void setEncryptionKey(char *key) {
     invalidMemory = true;
    }
 }
+

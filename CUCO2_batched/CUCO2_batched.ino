@@ -1,7 +1,5 @@
 /***************************************************
-     Early version of CUCO2 monitor code
-     Currently treats device as always active
-     Continuously posts to server without waiting for response
+     CUCO2 monitor code -- see README for more information
  ****************************************************/
 #include <WildFire_CC3000.h>
 #include <SPI.h>
@@ -45,7 +43,7 @@ int experiment_id=0, CO2_cutoff=DEFAULT_CO2_CUTOFF;
 long experimentStart = 0, millisOffset = 0;
 char vignere_key[32] = ""; //Encryption key
 volatile boolean offlineMode = false;
-
+boolean justStarted = true; //Whether, during the experiment, the CO2 ppm has risen above the CO2_cutoff threshold
 unsigned long loopTime = 0;
 
 ///Used for CO2 sensor
@@ -151,7 +149,22 @@ void setup(void)
 #endif
 
   Serial.println(F("IP address:"));
-  cc3000.getHostByName(HOST, &ip);
+  
+  lcd_print_top("Finding server");
+  lcd_print_bottom("IP address");
+  
+  uint32_t time = millis();
+  while(time + 5000 > millis() && ip == 0) {
+    cc3000.getHostByName(HOST, &ip);
+  }
+  if(ip == 0) {
+    lcd_print_top("Couldn't resolve");
+    lcd_print_bottom("Server IP");
+    Serial.print(F("Couldn't resolve server IP"));
+    delay(1000);
+    soft_reset();
+  }
+  
   petWDT();
   cc3000.printIPdotsRev(ip);
   Serial1.begin(9600);
@@ -187,8 +200,10 @@ void setup(void)
   
 } /////end setup /////
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void loop(void) {
+void loop(void) {  
+  
 #ifdef INSTRUMENTED
   printTimeDiff(F("Reached top of loop: "));
 #endif
@@ -225,6 +240,7 @@ void loop(void) {
       if(experiment_id != 0) {
         state = recording;
         setExperimentId(experiment_id);
+        justStarted = true;
       } else {
         lcd_print_top("No experiment"); lcd_print_bottom("found");
         
