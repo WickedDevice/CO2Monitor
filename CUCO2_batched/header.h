@@ -12,8 +12,8 @@
                                                    // Don't make this too big or the Wildfire won't have space for it
                                                    // This shouldn't cause packets to exceed TX_BUFFER_SIZE for the CC3000
                                                    
-#define DATA_MAX_LENGTH (PACKET_SIZE * 35 + 150) //Maximum length of the data string to submit in the packet
-                                                   // <35 for each datapoint, 150 for metadata
+#define DATA_MAX_LENGTH (PACKET_SIZE * 35 + 170) //Maximum length of the data string to submit in the packet
+                                                   // <35 for each datapoint, 170 for metadata
 char packet_buffer[160 + DATA_MAX_LENGTH + 64];  //Array that holds the packet
                                                    // ~160 for header, ~64 for extra space
 

@@ -83,7 +83,7 @@ If it only displays `Upload failed    Retrying` it will have failed for some oth
 ### Complete
 When uploading has finished, the LCD will show `Upload complete`. The WildFire will clear all the data read, and query the server to see if there is a new experiment waiting for it.
 
-* If the WildFire has just finished uploading recordings from offline mode or it stopped recording because you pushed the button, after talking to the server, it will attempt to record data for the same experiment it just uploaded for.
+* If the WildFire has stopped recording because you pushed the button, after talking to the server it will attempt to record data for the same experiment it just uploaded for.
 
 ### Reseting memory
 To clear all recorded data, flip the memory reset switch and push down the button during any of the following steps:
@@ -115,7 +115,7 @@ Wiring
 
 In `header.h` there are two pin layouts defined: One for when the new Air Quality Egg shield is attached, and one without it. Which of these is selected is determined by whether `WITH_SHIELD` is `true` or `false`.
 
-If you're using a WildFire V3, you'll need to remove R16 (the resitor), or Serial1's receive pin won't work. This is because pin D2 doubles as an interrupt pin and is used by the RFM69.
+If you're using a WildFire V3, you'll need to remove the RFM69 or R16 (the resitor), because the RFM69 uses the same pin as Serial1's receive line. This is because pin D2 doubles as an interrupt pin and is used by the RFM69.
 
 Here are the pin connections, with and without the shield attached:
 (Pins are counter-clockwise starting from the barrel jack on the WildFire)

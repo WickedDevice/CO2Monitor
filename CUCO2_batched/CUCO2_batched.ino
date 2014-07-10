@@ -76,8 +76,7 @@ void setup(void)
   pinMode(MEM_SWITCH, INPUT_PULLUP);
   
   K_30_Serial.begin(9600);
-  //lcd_print_top("Began WildFire");
-  
+  //lcd_print_top("Began WildFire");  
   
   //Initializing from nonvolatile memory
   if(!validEncryptionKey()) {
@@ -100,8 +99,8 @@ void setup(void)
     state = error;
     return;
   }
-  getEncryptionKey(vignere_key);
   
+  getEncryptionKey(vignere_key);
   
   ///////////// WIFI setup /////////////
   
@@ -174,7 +173,6 @@ void setup(void)
 #endif
   ///////////////// END WIFI setup ///////////
   
-  
   //Finding MAC address (must happen after cc3000.begin() is called)
   uint8_t mac[6] = "";
   if(!cc3000.getMacAddress(mac)) {
@@ -240,7 +238,6 @@ void loop(void) {
       if(experiment_id != 0) {
         state = recording;
         setExperimentId(experiment_id);
-        justStarted = true;
       } else {
         lcd_print_top("No experiment"); lcd_print_bottom("found");
         

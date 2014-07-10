@@ -195,15 +195,9 @@ boolean validEncryptionKey() {
 }
 
 void getEncryptionKey(char *buffer) {
-  char c;
-  int i = 0;
-  do {
-    c = eeprom_read_byte(ENCRYPTION_KEY_PTR + i);
-    buffer[i] = c;
-    i++;
-  } while(c != '\0' && i < 32);
-  
-  buffer[32] = '\0'; //Just to be safe.
+  eeprom_read_block(buffer, ENCRYPTION_KEY_PTR, 32);
+
+  buffer[31] = '\0'; //Just to be safe.
   
 }
 

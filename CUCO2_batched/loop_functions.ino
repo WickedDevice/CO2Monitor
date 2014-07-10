@@ -29,10 +29,11 @@ boolean experimentEnded() {
   //Serial.print("Just started (before change): "); Serial.println(justStarted);
   
   justStarted = (CO2_cutoff <= newAverage) ? false : justStarted;
-  
-  /*Serial.print("Just started: "); Serial.println(justStarted);
+  /*
+  Serial.print("Just started: "); Serial.println(justStarted);
   Serial.print("newAverage: ");   Serial.println(newAverage);
-  Serial.print("CO2_cutoff: "); Serial.println(CO2_cutoff);*/
+  Serial.print("CO2_cutoff: "); Serial.println(CO2_cutoff);
+  */
   if(CO2_cutoff > newAverage && !justStarted) {
     
     return true;
@@ -82,7 +83,18 @@ int assemblePacket(void) {
     strcat(data,experiment_string);
     
     strcat_P(data, PSTR("\", \"experiment_ended\": \""));
-    if(experimentEnded()) {
+    boolean lastPacket = !hasMoreData();
+    boolean experimentFinished = experimentEnded();
+    if(experimentFinished || (lastPacket && experiment_id == -1)) {
+      //If this is the last packet & it is in offline mode, the experiment has ended
+      // => This means that the WildFire won't keep recording for the same experiment that started offline.
+      strcat_P(data, PSTR("true"));
+    } else {
+      strcat_P(data, PSTR("false"));
+    }
+    
+    strcat_P(data, PSTR("\", \"last_packet\":\""));
+    if(!hasMoreData()) {
       strcat_P(data, PSTR("true"));
     } else {
       strcat_P(data, PSTR("false"));
@@ -92,6 +104,7 @@ int assemblePacket(void) {
     strcat(data, address);
     strcat_P(data, PSTR("\"}"));
     
+    Serial.println(data);
     //Run encryption
     encrypt(data, vignere_key, data);
 
