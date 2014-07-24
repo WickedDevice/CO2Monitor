@@ -350,7 +350,7 @@ void loop(void) {
       Serial.println(F("Sending data..."));
       lcd_print_top("Sending data...");
       lcd_print_bottom("");
-      lcd.print((int) ratioSent()*100);
+      lcd.print((int) (ratioSent()*100));
       lcd.print("% done");
       
       
