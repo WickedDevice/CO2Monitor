@@ -42,9 +42,9 @@
 
 	Connect the WildFire's 5V output and ground to the breadboard. It doesn't really matter which ground terminal(s) you use on the WildFire.
 
-	If your potentiometer gets pushed directly into the breadboard, make sure the 5 volt row, potentiometer's output, and ground are positioned so the potentiometer can straddle all 3.
+	* If your potentiometer gets pushed directly into the breadboard, make sure the 5 volt row, potentiometer's output, and ground are positioned so the potentiometer can straddle all 3.
 
-	My breadboard needed it's ground connections to be on two different rows and a jumper to cross them.
+	* My breadboard needed it's ground connections to be on two different rows and a jumper to cross them.
 
 3. Solder header pins onto LCD
 	This one is easy(ish):
@@ -119,6 +119,7 @@
 	2. Attach potentiometer to 5v on breadboard
 
 	3. Attach button and switch to WildFire
+
 		Button/switch | WildFire
 		------------- | --------
 		Memory switch | a1
@@ -157,11 +158,11 @@
 		E    | a2
 		R/W  | Breadboard ground
 		RS   | a3
-		V0   | leave off for now -- it will be attached to the potentiometer later.
+		V0   | Attach to potentiometer output
 		Vcc  | Breadboard 5V power row
 		Vss  | Breadboard ground
 
-	Congratulations, now you have a rats nest of wires. The clutter should get a lot better when we actually get the shields.
+	Congratulations, now you have a rat's nest of wires. The clutter should get a lot better when we actually get the shields.
 
 8. Connect power
 	I've currently got a terrible kludge for my power setup:
