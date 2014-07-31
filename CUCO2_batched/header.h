@@ -8,9 +8,10 @@
 
 #define LISTEN_PORT           80    // What TCP port to listen on for connections.
 
-#define PACKET_SIZE 50                          //Number of datapoints in a packet
+#define PACKET_SIZE 30                          //Number of datapoints in a packet
                                                    // Don't make this too big or the Wildfire won't have space for it
                                                    // This shouldn't cause packets to exceed TX_BUFFER_SIZE for the CC3000
+                                                   //   50 is slightly too much. It works most of the time, but not all
                                                    
 #define DATA_MAX_LENGTH (PACKET_SIZE * 35 + 170) //Maximum length of the data string to submit in the packet
                                                    // <35 for each datapoint, 170 for metadata

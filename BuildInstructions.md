@@ -4,7 +4,7 @@
 
 ### *This tutorial currently assumes that you're using a breadboard instead of the shield and not worrying about the enclosure!*
 
-## Wiring is setup for the HAS_SHIELD layout, primarily for forward compatibility.
+### Wiring is setup for the HAS_SHIELD layout, primarily for forward compatibility.
 
 
 0. Acquire materials and build enclosure
@@ -187,6 +187,7 @@
 			2. Wait until data is being recorded, if necessary clear old data & repeat.
 			3. Make sure the readings given in offline mode are sensible (~400ppm is a normal CO2 concentration outside, inside it tends to be higher).
 				* If it is giving 'bad reading', this either means that the power or ground for the K-30 isn't properly connected, or something more sinister is happening.
+				* If it is constantly giving 2050 ppm, the power is disconnected.
 
 10. Put everything in enclosure
 	* Tape or glue things in?
